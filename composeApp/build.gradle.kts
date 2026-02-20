@@ -1,6 +1,5 @@
 import gobley.gradle.GobleyHost
 import gobley.gradle.cargo.dsl.jvm
-import org.gradle.kotlin.dsl.assign
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -92,11 +91,11 @@ kotlin {
 }
 
 android {
-    namespace = "com.hashsequence.resvgcoil"
+    namespace = "com.hashsequence.coilresvg"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.hashsequence.resvgcoil"
+        applicationId = "com.hashsequence.coilresvg"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
@@ -124,11 +123,11 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.hashsequence.resvgcoil.MainKt"
+        mainClass = "com.hashsequence.coilresvg.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.hashsequence.resvgcoil"
+            packageName = "com.hashsequence.coilresvg"
             packageVersion = "1.0.0"
         }
     }

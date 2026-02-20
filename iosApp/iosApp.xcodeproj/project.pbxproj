@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		1C0D427BF761BE94DAEE76DB /* ResvgCoil.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ResvgCoil.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1C0D427BF761BE94DAEE76DB /* CoilResvg.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoilResvg.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -59,7 +59,7 @@
 		F7A14DDFA8C7617D44F861DD /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				1C0D427BF761BE94DAEE76DB /* ResvgCoil.app */,
+				1C0D427BF761BE94DAEE76DB /* CoilResvg.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -87,7 +87,7 @@
 			packageProductDependencies = (
 			);
 			productName = iosApp;
-			productReference = 1C0D427BF761BE94DAEE76DB /* ResvgCoil.app */;
+			productReference = 1C0D427BF761BE94DAEE76DB /* CoilResvg.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */

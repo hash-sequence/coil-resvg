@@ -1,9 +1,8 @@
-package com.hashsequence.resvgcoil
+package com.hashsequence.coilresvg
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import coil3.ImageLoader
-import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.annotation.ExperimentalCoilApi
 import coil3.network.ktor3.KtorNetworkFetcherFactory
@@ -16,7 +15,6 @@ fun main() {
         ImageLoader.Builder(context)
             .components {
                 add(KtorNetworkFetcherFactory())
-                // Add Mock SVG Decoder
                 add(ResvgDecoder.Factory())
             }
             .logger(DebugLogger()) // Add logger for debugging

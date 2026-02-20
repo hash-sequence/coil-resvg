@@ -1,4 +1,4 @@
-package com.hashsequence.resvgcoil
+package com.hashsequence.coilresvg
 
 class JsPlatform: Platform {
     override val name: String = "Web with Kotlin/JS"

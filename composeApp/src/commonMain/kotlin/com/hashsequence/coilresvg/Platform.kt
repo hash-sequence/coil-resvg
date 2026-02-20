@@ -1,4 +1,4 @@
-package com.hashsequence.resvgcoil
+package com.hashsequence.coilresvg
 
 interface Platform {
     val name: String

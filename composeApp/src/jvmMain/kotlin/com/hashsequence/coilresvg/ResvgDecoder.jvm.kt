@@ -1,26 +1,27 @@
-package com.hashsequence.resvgcoil
+package com.hashsequence.coilresvg
 
 import coil3.PlatformContext
+import coil3.asImage
 import coil3.decode.DecodeResult
 import coil3.request.Options
-import coil3.toImage
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.ColorAlphaType
 import org.jetbrains.skia.ImageInfo
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 /**
- * iOS platform screen density (default 1.0, no scaling)
+ * JVM/Desktop platform screen density (default 1.0, no scaling)
  */
 internal actual val PlatformContext.density: Float
     get() = 1f
 
 /**
- * iOS platform implementation: Render SVG using Resvg (using Skia)
+ * JVM/Desktop platform implementation: Render SVG using Resvg (using Skia)
  */
 actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): DecodeResult = 
-    withContext(Dispatchers.Default) {
+    kotlinx.coroutines.runInterruptible(Dispatchers.Default) {
         // Use Rust resvg to render SVG
         val renderer = uniffi.resvg_core.SvgRenderer.fromData(svgBytes)
         
@@ -31,10 +32,11 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
         // Render SVG
         val result = renderer.render(renderSize.width.toUInt(), renderSize.height.toUInt())
         
-        // Create Skia Bitmap and convert pixel data (RGBA -> ARGB)
+        // Create Skia Bitmap
         val bitmap = Bitmap()
         bitmap.allocPixels(ImageInfo.makeS32(renderSize.width, renderSize.height, ColorAlphaType.PREMUL))
         
+        // Convert pixel data from RGBA to ARGB format
         val pixels = IntArray(renderSize.width * renderSize.height)
         for (i in pixels.indices) {
             val baseIdx = i * 4
@@ -45,19 +47,13 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
             pixels[i] = (a shl 24) or (r shl 16) or (g shl 8) or b
         }
         
-        val pixelBytes = ByteArray(pixels.size * 4)
-        for (i in pixels.indices) {
-            val pixel = pixels[i]
-            val base = i * 4
-            pixelBytes[base] = (pixel and 0xFF).toByte()
-            pixelBytes[base + 1] = ((pixel shr 8) and 0xFF).toByte()
-            pixelBytes[base + 2] = ((pixel shr 16) and 0xFF).toByte()
-            pixelBytes[base + 3] = ((pixel shr 24) and 0xFF).toByte()
-        }
-        bitmap.installPixels(bitmap.imageInfo, pixelBytes, renderSize.width * 4)
+        // Install pixel data to bitmap
+        val buffer = ByteBuffer.allocate(pixels.size * 4).order(ByteOrder.LITTLE_ENDIAN)
+        pixels.forEach { buffer.putInt(it) }
+        bitmap.installPixels(bitmap.imageInfo, buffer.array(), renderSize.width * 4)
 
         DecodeResult(
-            image = bitmap.toImage(),
-            isSampled = true // SVG is vector format, can be re-decoded at higher resolution
+            image = bitmap.asImage(),
+            isSampled = true
         )
     }

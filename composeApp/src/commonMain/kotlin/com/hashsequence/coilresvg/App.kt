@@ -1,4 +1,4 @@
-package com.hashsequence.resvgcoil
+package com.hashsequence.coilresvg
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
-import resvgcoil.composeapp.generated.resources.Res
+import coilresvg.composeapp.generated.resources.Res
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
@@ -81,7 +81,7 @@ fun App() {
             
             // Load local SVG file
             Text(
-                text = "Local SVG (Mock Solid Color):",
+                text = "Local SVG:",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(8.dp)
             )
@@ -124,7 +124,7 @@ fun App() {
             
             // Load network SVG file
             Text(
-                text = "Network SVG (Mock Solid Color):",
+                text = "Network SVG:",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(8.dp)
             )
@@ -159,12 +159,6 @@ fun App() {
                         )
                     }
                 }
-            )
-            
-            Text(
-                text = "SVG files will be displayed as solid color rectangles (Android platform Mock)",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(8.dp)
             )
         }
     }

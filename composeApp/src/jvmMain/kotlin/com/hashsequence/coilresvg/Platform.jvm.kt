@@ -1,4 +1,4 @@
-package com.hashsequence.resvgcoil
+package com.hashsequence.coilresvg
 
 class JVMPlatform: Platform {
     override val name: String = "Java ${System.getProperty("java.version")}"

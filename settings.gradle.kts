@@ -1,4 +1,4 @@
-rootProject.name = "ResvgCoil"
+rootProject.name = "CoilResvg"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

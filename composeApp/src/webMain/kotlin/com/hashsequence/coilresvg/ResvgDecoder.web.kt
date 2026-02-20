@@ -1,4 +1,4 @@
-package com.hashsequence.resvgcoil
+package com.hashsequence.coilresvg
 
 import coil3.PlatformContext
 import coil3.decode.DecodeResult
@@ -11,17 +11,17 @@ import org.jetbrains.skia.ColorAlphaType
 import org.jetbrains.skia.ImageInfo
 
 /**
- * WASM/JS platform screen density (default 1.0, no scaling)
+ * Web platform screen density (default 1.0, no scaling)
  */
 internal actual val PlatformContext.density: Float
     get() = 1f
 
 /**
- * WASM/JS platform implementation: Render SVG using Resvg (using Skia)
+ * Web platform implementation: Render SVG using Resvg (using Skia)
  */
 actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): DecodeResult = 
     withContext(Dispatchers.Default) {
-        // Try using Rust resvg to render SVG (WASM platform may need special handling)
+        // Try using Rust resvg to render SVG (Web platform may need special handling)
         try {
             val renderer = uniffi.resvg_core.SvgRenderer.fromData(svgBytes)
             
@@ -52,6 +52,6 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
                 isSampled = true // SVG is vector format, can be re-decoded at higher resolution
             )
         } catch (e: Exception) {
-            throw UnsupportedOperationException("Resvg rendering on WASM platform is not yet supported: ${e.message}")
+            throw UnsupportedOperationException("Resvg rendering on Web platform is not yet supported: ${e.message}")
         }
     }

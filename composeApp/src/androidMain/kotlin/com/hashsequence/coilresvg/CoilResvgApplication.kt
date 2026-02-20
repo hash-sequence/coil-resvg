@@ -1,4 +1,4 @@
-package com.hashsequence.resvgcoil
+package com.hashsequence.coilresvg
 
 import android.app.Application
 import coil3.ImageLoader
@@ -8,12 +8,11 @@ import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
 import coil3.util.DebugLogger
 
-class ResvgCoilApplication : Application(), SingletonImageLoader.Factory {
+class CoilResvgApplication : Application(), SingletonImageLoader.Factory {
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         return ImageLoader.Builder(context)
             .components {
                 add(KtorNetworkFetcherFactory())
-                // Add Mock SVG Decoder
                 add(ResvgDecoder.Factory())
             }
             .crossfade(true)

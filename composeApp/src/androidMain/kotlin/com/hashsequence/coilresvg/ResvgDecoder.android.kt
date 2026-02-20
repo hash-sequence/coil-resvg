@@ -1,6 +1,5 @@
-package com.hashsequence.resvgcoil
+package com.hashsequence.coilresvg
 
-import android.graphics.Bitmap
 import coil3.PlatformContext
 import coil3.asImage
 import coil3.decode.DecodeResult
