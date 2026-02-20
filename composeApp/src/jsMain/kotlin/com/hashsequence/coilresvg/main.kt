@@ -10,14 +10,13 @@ import coil3.util.DebugLogger
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalCoilApi::class)
 fun main() {
-    // Configure Web platform ImageLoader
     SingletonImageLoader.setSafe { context ->
         ImageLoader.Builder(context)
             .components {
                 add(KtorNetworkFetcherFactory())
                 add(ResvgDecoder.Factory())
             }
-            .logger(DebugLogger()) // Add logger for debugging
+            .logger(DebugLogger())
             .build()
     }
     

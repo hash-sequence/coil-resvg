@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-resvg = "0.45"
-usvg = "0.45"
-tiny-skia = "0.11"
+resvg = "0.47"
+usvg = "0.47"
+tiny-skia = "0.12"
 uniffi = "0.29"
 thiserror = "2.0"
 fontdb = "0.23"

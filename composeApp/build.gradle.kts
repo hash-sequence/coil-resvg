@@ -1,4 +1,5 @@
 import gobley.gradle.GobleyHost
+import gobley.gradle.cargo.dsl.appleMobile
 import gobley.gradle.cargo.dsl.jvm
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -19,6 +20,18 @@ cargo {
     packageDirectory = layout.projectDirectory.dir("../resvg-core")
     builds.jvm {
         embedRustLibrary = (rustTarget == GobleyHost.current.rustTarget)
+    }
+    builds.appleMobile {
+        variants {
+            buildTaskProvider.configure {
+                when (rustTarget.cinteropName) {
+                    "ios" -> additionalEnvironment.put("IPHONEOS_DEPLOYMENT_TARGET", "15.0.0")
+                    "tvos" -> additionalEnvironment.put("TVOS_DEPLOYMENT_TARGET", "15.0.0")
+                    "watchos" -> additionalEnvironment.put("WATCHOS_DEPLOYMENT_TARGET", "9.0.0")
+                    else -> {}
+                }
+            }
+        }
     }
 }
 

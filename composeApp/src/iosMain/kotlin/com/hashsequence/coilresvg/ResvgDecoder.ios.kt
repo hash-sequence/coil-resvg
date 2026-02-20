@@ -1,9 +1,9 @@
 package com.hashsequence.coilresvg
 
 import coil3.PlatformContext
+import coil3.asImage
 import coil3.decode.DecodeResult
 import coil3.request.Options
-import coil3.toImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Bitmap
@@ -31,33 +31,25 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
         // Render SVG
         val result = renderer.render(renderSize.width.toUInt(), renderSize.height.toUInt())
         
-        // Create Skia Bitmap and convert pixel data (RGBA -> ARGB)
+        // 优化：直接使用 RGBA 格式，无需转换
+        // resvg 返回的就是 RGBA 字节序列，直接告诉 Skia 使用 RGBA_8888 格式即可
+        val imageInfo = ImageInfo(
+            width = renderSize.width,
+            height = renderSize.height,
+            colorInfo = org.jetbrains.skia.ColorInfo(
+                colorType = org.jetbrains.skia.ColorType.RGBA_8888,
+                alphaType = ColorAlphaType.UNPREMUL,
+                colorSpace = null
+            )
+        )
+        
         val bitmap = Bitmap()
-        bitmap.allocPixels(ImageInfo.makeS32(renderSize.width, renderSize.height, ColorAlphaType.PREMUL))
-        
-        val pixels = IntArray(renderSize.width * renderSize.height)
-        for (i in pixels.indices) {
-            val baseIdx = i * 4
-            val r = result.pixels[baseIdx].toInt() and 0xFF
-            val g = result.pixels[baseIdx + 1].toInt() and 0xFF
-            val b = result.pixels[baseIdx + 2].toInt() and 0xFF
-            val a = result.pixels[baseIdx + 3].toInt() and 0xFF
-            pixels[i] = (a shl 24) or (r shl 16) or (g shl 8) or b
-        }
-        
-        val pixelBytes = ByteArray(pixels.size * 4)
-        for (i in pixels.indices) {
-            val pixel = pixels[i]
-            val base = i * 4
-            pixelBytes[base] = (pixel and 0xFF).toByte()
-            pixelBytes[base + 1] = ((pixel shr 8) and 0xFF).toByte()
-            pixelBytes[base + 2] = ((pixel shr 16) and 0xFF).toByte()
-            pixelBytes[base + 3] = ((pixel shr 24) and 0xFF).toByte()
-        }
-        bitmap.installPixels(bitmap.imageInfo, pixelBytes, renderSize.width * 4)
+        // 直接安装像素数据，避免中间转换和复制
+        bitmap.installPixels(imageInfo, result.pixels, renderSize.width * 4)
+        bitmap.setImmutable()
 
         DecodeResult(
-            image = bitmap.toImage(),
+            image = bitmap.asImage(),
             isSampled = true // SVG is vector format, can be re-decoded at higher resolution
         )
     }

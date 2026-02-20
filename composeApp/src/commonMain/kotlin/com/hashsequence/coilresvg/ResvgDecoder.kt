@@ -2,6 +2,7 @@ package com.hashsequence.coilresvg
 
 import coil3.ImageLoader
 import coil3.PlatformContext
+import coil3.annotation.ExperimentalCoilApi
 import coil3.decode.DecodeResult
 import coil3.decode.DecodeUtils
 import coil3.decode.Decoder
@@ -27,7 +28,12 @@ class ResvgDecoder(
 
     override suspend fun decode(): DecodeResult {
         val svgBytes = source.source().use { it.readByteArray() }
-        return renderSvgImage(svgBytes, options)
+        return try {
+            renderSvgImage(svgBytes, options)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
     }
 
     class Factory : Decoder.Factory {
@@ -85,6 +91,7 @@ private const val SVG_DEFAULT_SIZE = 512
  * Calculate SVG render size, maintaining aspect ratio
  * Uses Coil's standard method to ensure consistent cross-platform behavior
  */
+@OptIn(ExperimentalCoilApi::class)
 internal fun computeSvgRenderSize(
     svgWidth: Float,
     svgHeight: Float,
