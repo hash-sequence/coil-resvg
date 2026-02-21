@@ -25,8 +25,8 @@ fun main() = application {
     
     Window(
         onCloseRequest = ::exitApplication,
-        title = "CoilResvg",
+        title = "CoilResvg - Performance Comparison",
     ) {
-        App()
+        PerformanceComparisonApp()
     }
 }

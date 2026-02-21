@@ -19,21 +19,16 @@ internal actual val PlatformContext.density: Float
  */
 actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): DecodeResult = 
     withContext(Dispatchers.Default) {
-        // Use Rust resvg to render SVG
         val renderer = uniffi.resvg_core.SvgRenderer.fromData(svgBytes)
         
-        // Get SVG original size and calculate render size (maintain aspect ratio)
         val svgSize = renderer.getSize()
         val renderSize = computeSvgRenderSize(svgSize.width, svgSize.height, options)
         
-        // Render SVG
         val result = renderer.render(renderSize.width.toUInt(), renderSize.height.toUInt())
         
-        // 优化：单次循环转换 RGBA -> ARGB，避免多次遍历
+        // tiny-skia 输出 premultiplied RGBA，只需重排通道为 ARGB
         val pixelCount = renderSize.width * renderSize.height
         val pixels = IntArray(pixelCount)
-        
-        // 单次循环完成转换 (RGBA byte array -> ARGB int array)
         for (i in 0 until pixelCount) {
             val baseIdx = i * 4
             val r = result.pixels[baseIdx].toInt() and 0xFF
@@ -43,12 +38,15 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
             pixels[i] = (a shl 24) or (r shl 16) or (g shl 8) or b
         }
         
-        // 创建 Bitmap 并设置像素
         val bitmap = createBitmap(renderSize.width, renderSize.height)
+        // 数据已经是预乘的，先关闭预乘标记防止 setPixels 再次预乘
+        bitmap.isPremultiplied = false
         bitmap.setPixels(pixels, 0, renderSize.width, 0, 0, renderSize.width, renderSize.height)
+        // 恢复预乘标记，确保渲染正确
+        bitmap.isPremultiplied = true
 
         DecodeResult(
             image = bitmap.asImage(),
-            isSampled = true // SVG is vector format, can be re-decoded at higher resolution
+            isSampled = true
         )
     }

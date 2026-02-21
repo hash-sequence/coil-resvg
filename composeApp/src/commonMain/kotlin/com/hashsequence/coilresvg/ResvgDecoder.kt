@@ -17,6 +17,7 @@ import okio.BufferedSource
 import okio.ByteString.Companion.encodeUtf8
 import okio.use
 import kotlin.math.roundToInt
+import kotlin.time.measureTimedValue
 
 /**
  * Render SVG using Resvg (Rust)
@@ -28,12 +29,18 @@ class ResvgDecoder(
 
     override suspend fun decode(): DecodeResult {
         val svgBytes = source.source().use { it.readByteArray() }
-        return try {
-            renderSvgImage(svgBytes, options)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            throw e
+        
+        val (result, duration) = measureTimedValue {
+            try {
+                renderSvgImage(svgBytes, options)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                throw e
+            }
         }
+        
+        println("ResvgDecoder decode took ${duration.inWholeMilliseconds}ms")
+        return result
     }
 
     class Factory : Decoder.Factory {

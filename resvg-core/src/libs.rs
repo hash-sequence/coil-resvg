@@ -38,7 +38,6 @@ fn get_fontdb_with_fonts() -> Arc<fontdb::Database> {
     FONTDB_WITH_FONTS
         .get_or_init(|| {
             let mut fontdb = fontdb::Database::new();
-            fontdb.load_system_fonts();
 
             #[cfg(target_os = "android")]
             {
@@ -59,6 +58,11 @@ fn get_fontdb_with_fonts() -> Arc<fontdb::Database> {
                 fontdb.set_monospace_family("Menlo");
                 fontdb.set_cursive_family("Snell Roundhand");
                 fontdb.set_fantasy_family("Papyrus");
+            }
+
+            #[cfg(not(any(target_os = "android", target_os = "ios")))]
+            {
+                fontdb.load_system_fonts();
             }
 
             Arc::new(fontdb)

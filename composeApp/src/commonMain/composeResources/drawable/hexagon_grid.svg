@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="hexGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#11998E;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#38EF7D;stop-opacity:0.9" />
+    </linearGradient>
+    <linearGradient id="hexGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FC466B;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#3F5EFB;stop-opacity:0.8" />
+    </linearGradient>
+    <linearGradient id="hexGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FA709A;stop-opacity:0.7" />
+      <stop offset="100%" style="stop-color:#FEE140;stop-opacity:0.7" />
+    </linearGradient>
+    
+    <!-- Hexagon pattern -->
+    <polygon id="hexagon" points="17.3,0 34.6,10 34.6,30 17.3,40 0,30 0,10" 
+             stroke="#FFFFFF" stroke-width="1.5" fill="none"/>
+  </defs>
+  
+  <!-- Background gradient -->
+  <rect width="200" height="200" fill="#0F2027"/>
+  
+  <!-- Hexagon grid -->
+  <g opacity="0.6">
+    <!-- Row 1 -->
+    <use href="#hexagon" x="30" y="20" fill="url(#hexGrad1)"/>
+    <use href="#hexagon" x="82" y="20" fill="url(#hexGrad2)"/>
+    <use href="#hexagon" x="134" y="20" fill="url(#hexGrad3)"/>
+    
+    <!-- Row 2 -->
+    <use href="#hexagon" x="56" y="50" fill="url(#hexGrad2)"/>
+    <use href="#hexagon" x="108" y="50" fill="url(#hexGrad3)"/>
+    
+    <!-- Row 3 -->
+    <use href="#hexagon" x="30" y="80" fill="url(#hexGrad3)"/>
+    <use href="#hexagon" x="82" y="80" fill="url(#hexGrad1)"/>
+    <use href="#hexagon" x="134" y="80" fill="url(#hexGrad2)"/>
+    
+    <!-- Row 4 -->
+    <use href="#hexagon" x="56" y="110" fill="url(#hexGrad1)"/>
+    <use href="#hexagon" x="108" y="110" fill="url(#hexGrad2)"/>
+    
+    <!-- Row 5 -->
+    <use href="#hexagon" x="30" y="140" fill="url(#hexGrad2)"/>
+    <use href="#hexagon" x="82" y="140" fill="url(#hexGrad3)"/>
+    <use href="#hexagon" x="134" y="140" fill="url(#hexGrad1)"/>
+  </g>
+  
+  <!-- Center highlight hexagons -->
+  <g transform="translate(100, 100)">
+    <polygon points="25,0 50,14.4 50,43.3 25,57.7 0,43.3 0,14.4" 
+             fill="none" stroke="#FFD700" stroke-width="3" opacity="0.8"/>
+    <polygon points="15,0 30,8.6 30,26 15,34.6 0,26 0,8.6" 
+             fill="#FFD700" opacity="0.3"/>
+    
+    <!-- Connecting lines -->
+    <line x1="0" y1="0" x2="0" y2="-40" stroke="#38EF7D" stroke-width="2" opacity="0.5"/>
+    <line x1="0" y1="0" x2="35" y2="-20" stroke="#3F5EFB" stroke-width="2" opacity="0.5"/>
+    <line x1="0" y1="0" x2="35" y2="20" stroke="#FEE140" stroke-width="2" opacity="0.5"/>
+    <line x1="0" y1="0" x2="0" y2="40" stroke="#FC466B" stroke-width="2" opacity="0.5"/>
+    <line x1="0" y1="0" x2="-35" y2="20" stroke="#FA709A" stroke-width="2" opacity="0.5"/>
+    <line x1="0" y1="0" x2="-35" y2="-20" stroke="#11998E" stroke-width="2" opacity="0.5"/>
+  </g>
+  
+  <!-- Decorative dots -->
+  <circle cx="25" cy="25" r="3" fill="#FFD700"/>
+  <circle cx="175" cy="25" r="3" fill="#38EF7D"/>
+  <circle cx="25" cy="175" r="3" fill="#3F5EFB"/>
+  <circle cx="175" cy="175" r="3" fill="#FC466B"/>
+</svg>

@@ -21,6 +21,6 @@ fun main() {
     }
     
     ComposeViewport {
-        App()
+        PerformanceComparisonApp()
     }
 }

@@ -31,14 +31,13 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
         // Render SVG
         val result = renderer.render(renderSize.width.toUInt(), renderSize.height.toUInt())
         
-        // 优化：直接使用 RGBA 格式，无需转换
-        // resvg 返回的就是 RGBA 字节序列，直接告诉 Skia 使用 RGBA_8888 格式即可
+        // tiny-skia 输出 premultiplied alpha RGBA，必须标记为 PREMUL
         val imageInfo = ImageInfo(
             width = renderSize.width,
             height = renderSize.height,
             colorInfo = org.jetbrains.skia.ColorInfo(
                 colorType = org.jetbrains.skia.ColorType.RGBA_8888,
-                alphaType = ColorAlphaType.UNPREMUL,
+                alphaType = ColorAlphaType.PREMUL,
                 colorSpace = null
             )
         )

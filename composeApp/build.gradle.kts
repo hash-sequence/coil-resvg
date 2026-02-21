@@ -82,6 +82,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
+            implementation(libs.coil.svg)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

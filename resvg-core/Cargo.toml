@@ -11,6 +11,10 @@ uniffi = "0.29"
 thiserror = "2.0"
 fontdb = "0.23"
 
+# 让 debug profile 也开启优化，验证 release 性能
+[profile.dev]
+opt-level = 3
+
 [lib]
 crate-type = ["cdylib", "staticlib"]
 path = "src/libs.rs"

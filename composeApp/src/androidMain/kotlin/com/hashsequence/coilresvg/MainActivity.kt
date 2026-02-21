@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            App()
+            PerformanceComparisonApp()
         }
     }
 }
@@ -21,5 +21,5 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
-    App()
+    PerformanceComparisonApp()
 }

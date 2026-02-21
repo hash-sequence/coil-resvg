@@ -42,35 +42,24 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
     val decodeStartTime = kotlin.js.Date.now()
     val svgString = svgBytes.decodeToString()
     val decodeTime = kotlin.js.Date.now() - decodeStartTime
-    console.log("[JS SVG] SVG string length: ${svgString.length}, preview: ${svgString.take(100)}")
-    console.log("[JS SVG] Options size: ${options.size}, scale: ${options.scale}")
-    console.log("[JS SVG] ⏱️ String decode time: ${decodeTime.format()}ms")
-    
+
     // Parse viewBox from SVG to get actual dimensions
     val parseStartTime = kotlin.js.Date.now()
     val viewBoxDimensions = parseSvgViewBox(svgString)
     val parseTime = kotlin.js.Date.now() - parseStartTime
-    console.log("[JS SVG] Parsed viewBox: ${viewBoxDimensions?.let { "${it.first} x ${it.second}" } ?: "none"}")
-    console.log("[JS SVG] ⏱️ ViewBox parse time: ${parseTime.format()}ms")
-    
+
     val blobStartTime = kotlin.js.Date.now()
     val blob = Blob(arrayOf(svgString), BlobPropertyBag(type = "image/svg+xml"))
     val blobUrl = URL.createObjectURL(blob)
     val blobTime = kotlin.js.Date.now() - blobStartTime
-    console.log("[JS SVG] Blob URL created: $blobUrl")
-    console.log("[JS SVG] ⏱️ Blob creation time: ${blobTime.format()}ms")
-    
+
     try {
         // Load SVG using HTML Image element
         console.log("[JS SVG] Loading image...")
         val loadStartTime = kotlin.js.Date.now()
         val img = loadImage(blobUrl)
         val loadTime = kotlin.js.Date.now() - loadStartTime
-        console.log("[JS SVG] Image loaded successfully")
-        console.log("[JS SVG] ⏱️ Image load time: ${loadTime.format()}ms")
-        console.log("[JS SVG] Image natural size: ${img.naturalWidth} x ${img.naturalHeight}")
-        console.log("[JS SVG] Parsed viewBox: ${viewBoxDimensions?.let { "${it.first} x ${it.second}" } ?: "none"}")
-        
+
         // Use natural dimensions (browser already handles viewBox correctly)
         val svgWidth = if (img.naturalWidth > 0) img.naturalWidth.toFloat() else 100f
         val svgHeight = if (img.naturalHeight > 0) img.naturalHeight.toFloat() else 100f
@@ -93,14 +82,12 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
         val drawStartTime = kotlin.js.Date.now()
         ctx.drawImage(img, 0.0, 0.0, renderSize.width.toDouble(), renderSize.height.toDouble())
         val drawTime = kotlin.js.Date.now() - drawStartTime
-        console.log("[JS SVG] ⏱️ Canvas draw time: ${drawTime.format()}ms")
-        
+
         // Extract pixel data (RGBA format from Canvas)
         val extractStartTime = kotlin.js.Date.now()
         val imageData = ctx.getImageData(0.0, 0.0, renderSize.width.toDouble(), renderSize.height.toDouble())
         val extractTime = kotlin.js.Date.now() - extractStartTime
-        console.log("[JS SVG] ⏱️ Pixel data extract time: ${extractTime.format()}ms")
-        
+
         val convertStartTime = kotlin.js.Date.now()
         
         // 关键优化：零拷贝操作
@@ -132,12 +119,7 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
         val convertTime = kotlin.js.Date.now() - convertStartTime
         val bitmapTime = kotlin.js.Date.now() - bitmapStartTime
         
-        console.log("[JS SVG] ⏱️ Pixel setup (Zero-Copy) time: ${convertTime.format()}ms")
-        console.log("[JS SVG] ⏱️ Bitmap ready time: ${bitmapTime.format()}ms")
-        
         val totalTime = kotlin.js.Date.now() - startTime
-        console.log("[JS SVG] ⏱️⏱️⏱️ TOTAL RENDER TIME: ${totalTime.format()}ms ⏱️⏱️⏱️")
-        console.log("[JS SVG] === renderSvgImage SUCCESS ===")
         return DecodeResult(
             image = bitmap.asImage(),
             isSampled = true

@@ -20,5 +20,5 @@ fun MainViewController() = ComposeUIViewController {
             .build()
     }
     
-    App()
+    PerformanceComparisonApp()
 }

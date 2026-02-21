@@ -40,11 +40,6 @@ private external fun consoleLog(message: String)
 @JsFun("(msg) => console.error(msg)")
 private external fun consoleError(message: String)
 
-// Get current timestamp for performance measurement
-@OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
-@JsFun("() => performance.now()")
-private external fun performanceNow(): Double
-
 /**
  * WasmJS platform screen density (default 1.0, no scaling)
  */
@@ -59,74 +54,39 @@ internal actual val PlatformContext.density: Float
  */
 @OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
 actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): DecodeResult {
-    val startTime = performanceNow()
-    val decodeStartTime = performanceNow()
     val svgString = svgBytes.decodeToString()
-    val decodeTime = performanceNow() - decodeStartTime
     val svgId = "[${svgString.take(50).hashCode()}]"
-    
-    consoleLog("$svgId === renderSvgImage START === bytes: ${svgBytes.size}")
-    consoleLog("$svgId SVG string length: ${svgString.length}, preview: ${svgString.take(100)}")
-    consoleLog("$svgId Options size: ${options.size}, scale: ${options.scale}")
-    consoleLog("$svgId ⏱️ String decode time: ${decodeTime.format()}ms")
-    
+
     // Parse viewBox from SVG to get actual dimensions
-    val parseStartTime = performanceNow()
     val viewBoxDimensions = parseSvgViewBox(svgString)
-    val parseTime = performanceNow() - parseStartTime
-    consoleLog("$svgId Parsed viewBox: ${viewBoxDimensions?.let { "${it.first} x ${it.second}" } ?: "none"}")
-    consoleLog("$svgId ⏱️ ViewBox parse time: ${parseTime.format()}ms")
-    
-    val encodeStartTime = performanceNow()
+
     val encodedSvg = encodeURIComponent(svgString)
     val dataUrl = "data:image/svg+xml;charset=utf-8,$encodedSvg"
-    val encodeTime = performanceNow() - encodeStartTime
-    consoleLog("$svgId Data URL created, length: ${dataUrl.length}")
-    consoleLog("$svgId ⏱️ URL encode time: ${encodeTime.format()}ms")
-    
+
     try {
         // Load SVG using HTML Image element
-        consoleLog("$svgId Loading image...")
-        val loadStartTime = performanceNow()
         val img = loadImage(dataUrl, svgId)
-        val loadTime = performanceNow() - loadStartTime
-        consoleLog("$svgId Image loaded successfully")
-        consoleLog("$svgId ⏱️ Image load time: ${loadTime.format()}ms")
-        consoleLog("$svgId Image natural size: ${img.naturalWidth} x ${img.naturalHeight}")
-        consoleLog("$svgId Parsed viewBox: ${viewBoxDimensions?.let { "${it.first} x ${it.second}" } ?: "none"}")
-        
+
         // Use natural dimensions (browser already handles viewBox correctly)
         val svgWidth = if (img.naturalWidth > 0) img.naturalWidth.toFloat() else 100f
         val svgHeight = if (img.naturalHeight > 0) img.naturalHeight.toFloat() else 100f
-        consoleLog("$svgId Using dimensions for scaling: $svgWidth x $svgHeight")
-        
+
         // Calculate render size (maintain aspect ratio)
         val renderSize = computeSvgRenderSize(svgWidth, svgHeight, options)
-        consoleLog("$svgId Computed render size: ${renderSize.width} x ${renderSize.height}")
-        
+
         // Convert Image to pixel data via Canvas
         val canvas = document.createElement("canvas") as HTMLCanvasElement
         canvas.width = renderSize.width
         canvas.height = renderSize.height
-        consoleLog("$svgId Canvas created: ${canvas.width} x ${canvas.height}")
-        
+
         val ctx = canvas.getContext("2d") as CanvasRenderingContext2D
         
         // Draw entire SVG image to canvas (let browser handle viewBox)
-        consoleLog("$svgId Drawing image to canvas: ${renderSize.width} x ${renderSize.height}")
-        val drawStartTime = performanceNow()
         ctx.drawImage(img, 0.0, 0.0, renderSize.width.toDouble(), renderSize.height.toDouble())
-        val drawTime = performanceNow() - drawStartTime
-        consoleLog("$svgId ⏱️ Canvas draw time: ${drawTime.format()}ms")
-        
+
         // Extract pixel data (RGBA format from Canvas)
-        val extractStartTime = performanceNow()
         val imageData = ctx.getImageData(0.0, 0.0, renderSize.width.toDouble(), renderSize.height.toDouble())
-        val extractTime = performanceNow() - extractStartTime
-        consoleLog("$svgId ⏱️ Pixel data extract time: ${extractTime.format()}ms")
-        
-        val convertStartTime = performanceNow()
-        
+
         // 关键优化：单层循环复制 + 直接使用 RGBA 格式
         // 从 ImageData 获取 Int8Array，然后通过单层循环复制到 Kotlin ByteArray
         val totalBytes = renderSize.width * renderSize.height * 4
@@ -150,7 +110,6 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
             )
         )
 
-        val bitmapStartTime = performanceNow()
         val bitmap = Bitmap()
         
         // 将字节直接安装到 Bitmap (installPixels 比 allocPixels + copy 更快)
@@ -159,15 +118,6 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
         // 调用 setImmutable 让 Skia 锁定数据，确保数据安全
         bitmap.setImmutable()
 
-        val convertTime = performanceNow() - convertStartTime
-        val bitmapTime = performanceNow() - bitmapStartTime
-        
-        consoleLog("$svgId ⏱️ Pixel setup (Single-Loop) time: ${convertTime.format()}ms")
-        consoleLog("$svgId ⏱️ Bitmap ready time: ${bitmapTime.format()}ms")
-        
-        val totalTime = performanceNow() - startTime
-        consoleLog("$svgId ⏱️⏱️⏱️ TOTAL RENDER TIME: ${totalTime.format()}ms ⏱️⏱️⏱️")
-        consoleLog("$svgId === renderSvgImage SUCCESS ===")
         return DecodeResult(
             image = bitmap.asImage(),
             isSampled = true
