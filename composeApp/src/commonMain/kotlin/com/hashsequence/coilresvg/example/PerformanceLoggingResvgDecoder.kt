@@ -12,8 +12,8 @@ import okio.ByteString.Companion.encodeUtf8
 import kotlin.time.measureTimedValue
 
 /**
- * ResvgDecoder 的性能日志包装器
- * 用于测量和记录 Resvg 解码器的性能
+ * Performance logging wrapper for ResvgDecoder
+ * Used to measure and record Resvg decoder performance, and write time to [PerformanceTracker] for UI display
  */
 class PerformanceLoggingResvgDecoder(
     private val source: ImageSource,
@@ -22,11 +22,15 @@ class PerformanceLoggingResvgDecoder(
 
     override suspend fun decode(): DecodeResult {
         val (result, duration) = measureTimedValue {
-            // 使用 ResvgDecoder
             ResvgDecoder(source, options).decode()
         }
-        
-        println("ResvgDecoder decode took ${duration.inWholeMilliseconds}ms")
+
+        val millis = duration.inWholeMilliseconds
+        val modelKey = options.getModelKey()
+        println("ResvgDecoder decode took ${millis}ms (model=$modelKey)")
+        if (modelKey.isNotEmpty()) {
+            PerformanceTracker.record("resvg", modelKey, millis)
+        }
         return result
     }
 
@@ -36,7 +40,6 @@ class PerformanceLoggingResvgDecoder(
             options: Options,
             imageLoader: ImageLoader
         ): Decoder? {
-            // 检查是否是 SVG 文件
             if (!isSvg(result.source.source(), result.mimeType)) {
                 return null
             }

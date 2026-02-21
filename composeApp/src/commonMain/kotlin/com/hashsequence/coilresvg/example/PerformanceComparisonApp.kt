@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -25,10 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.compose.SubcomposeAsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import coil3.request.crossfade
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
@@ -38,42 +43,39 @@ import coilresvg.composeapp.generated.resources.Res
 @Composable
 fun PerformanceComparisonApp() {
     var shouldLoadImages by remember { mutableStateOf(false) }
-    
+    var reloadKey by remember { mutableStateOf(0) }
+
     val context = LocalPlatformContext.current
-    
-    // Test Icon - 始终显示
-    val testIcon = remember { Res.getUri("drawable/test_icon.svg") }
-    
-    // 创建使用 Coil-SVG 的 ImageLoader
+
+    // Create ImageLoader using Coil-SVG
     val coilSvgLoader = remember {
         ImageLoader.Builder(context)
             .components {
                 add(PerformanceLoggingSvgDecoder.Factory())
             }
-            .crossfade(true)
             .build()
     }
-    
-    // 创建使用 Resvg 的 ImageLoader
+
+    // Create ImageLoader using Resvg
     val resvgLoader = remember {
         ImageLoader.Builder(context)
             .components {
                 add(PerformanceLoggingResvgDecoder.Factory())
             }
-            .crossfade(true)
             .build()
     }
-    
-    // 测试图片列表
+
+    // All test images (including test_icon)
     val testImages = remember {
         listOf(
-            Res.getUri("drawable/geometric_pattern.svg"),
+            Res.getUri("drawable/test_icon.svg"),
             Res.getUri("drawable/flower_mandala.svg"),
-            Res.getUri("drawable/abstract_waves.svg"),
-            Res.getUri("drawable/hexagon_grid.svg")
+            Res.getUri("drawable/test_inner_image.svg"),
+            Res.getUri("drawable/advanced_filters_stress.svg"),
+            Res.getUri("drawable/cosmic_nightscape.svg")
         )
     }
-    
+
     MaterialTheme {
         Column(
             modifier = Modifier
@@ -83,150 +85,173 @@ fun PerformanceComparisonApp() {
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = "SVG 解码器性能对比",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(16.dp)
-            )
-            
-            Text(
-                text = "Coil-SVG vs Resvg",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            // Test Icon 对比展示 - 始终显示
-            Text(
-                text = "Test Icon (始终显示)",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-            )
-            
+            // Header and button in one row: Coil-SVG | Button | Resvg
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Coil-SVG
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.weight(1f)
-                ) {
+                if (shouldLoadImages) {
                     Text(
                         text = "Coil-SVG",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
                         color = Color(0xFF2196F3),
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center
                     )
-                    
-                    SubcomposeAsyncImage(
-                        model = testIcon,
-                        imageLoader = coilSvgLoader,
-                        contentDescription = "Test Icon - Coil-SVG",
-                        modifier = Modifier.size(100.dp),
-                        contentScale = ContentScale.Fit,
-                        loading = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        },
-                        error = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.LightGray),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "Error",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Red
-                                )
-                            }
-                        }
-                    )
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                // Resvg
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.weight(1f)
+
+                Button(
+                    onClick = {
+                        if (shouldLoadImages) {
+                            reloadKey++
+                        } else {
+                            shouldLoadImages = true
+                        }
+                    }
                 ) {
+                    Text(if (shouldLoadImages) "Test Again" else "Start Test")
+                }
+
+                if (shouldLoadImages) {
                     Text(
                         text = "Resvg",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
                         color = Color(0xFF4CAF50),
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center
                     )
-                    
-                    SubcomposeAsyncImage(
-                        model = testIcon,
-                        imageLoader = resvgLoader,
-                        contentDescription = "Test Icon - Resvg",
-                        modifier = Modifier.size(100.dp),
-                        contentScale = ContentScale.Fit,
-                        loading = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        },
-                        error = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.LightGray),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "Error",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Red
-                                )
-                            }
-                        }
-                    )
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 其他图片的测试按钮
-            Button(
-                onClick = { shouldLoadImages = !shouldLoadImages },
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(if (shouldLoadImages) "清除其他图片" else "测试其他图片")
-            }
-            
+
+            // Hint text
+            Text(
+                text = "Memory cache disabled, forcing re-render",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                textAlign = TextAlign.Center
+            )
+
             if (shouldLoadImages) {
-                testImages.forEachIndexed { index, imageUrl ->
-                    ComparisonCard(
-                        imageUrl = imageUrl,
-                        imageTitle = "SVG ${index + 1}",
-                        coilSvgLoader = coilSvgLoader,
-                        resvgLoader = resvgLoader
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+
+                key(reloadKey) {
+                    testImages.forEach { imageUrl ->
+                        ComparisonCard(
+                            imageUrl = imageUrl,
+                            coilSvgLoader = coilSvgLoader,
+                            resvgLoader = resvgLoader
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+/**
+ * Image display column for a single decoder, including label, image, and decode time display
+ */
+@Composable
+fun DecoderImageColumn(
+    modelUrl: String,
+    decoderType: String,
+    labelColor: Color,
+    imageLoader: ImageLoader,
+    contentDescription: String,
+    imageSize: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalPlatformContext.current
+
+    // Build ImageRequest, write modelUrl to extras for Decoder recognition
+    val request = remember(modelUrl) {
+        ImageRequest.Builder(context)
+            .data(modelUrl)
+            .memoryCachePolicy(CachePolicy.DISABLED)
+            .apply { extras[ModelKeyExtra] = modelUrl }
+            .build()
+    }
+
+    // Read decode time from PerformanceTracker (Compose can directly observe mutableStateMapOf changes)
+    val decodeTime = PerformanceTracker.get(decoderType, modelUrl)
+
+    Box(
+        modifier = modifier
+    ) {
+        SubcomposeAsyncImage(
+            model = request,
+            imageLoader = imageLoader,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(imageSize),
+            contentScale = ContentScale.Fit,
+            loading = {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            },
+            error = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Error",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Red
+                    )
+                }
+            }
+        )
+
+        // Decode time display in bottom right corner
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(4.dp)
+        ) {
+            DecodeTimeLabel(decodeTime = decodeTime, color = labelColor)
+        }
+    }
+}
+
+/**
+ * Decode time label
+ */
+@Composable
+fun DecodeTimeLabel(decodeTime: Long?, color: Color) {
+    Box(
+        modifier = Modifier
+            .background(
+                color = color,
+                shape = RoundedCornerShape(4.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = if (decodeTime != null) "${decodeTime}ms" else "...",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+    }
+}
+
 @Composable
 fun ComparisonCard(
     imageUrl: String,
-    imageTitle: String,
     coilSvgLoader: ImageLoader,
     resvgLoader: ImageLoader
 ) {
@@ -236,115 +261,36 @@ fun ComparisonCard(
             .padding(horizontal = 16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(4.dp)
         ) {
-            Text(
-                text = imageTitle,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 // Coil-SVG
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                DecoderImageColumn(
+                    modelUrl = imageUrl,
+                    decoderType = "coil-svg",
+                    labelColor = Color(0xFF2196F3),
+                    imageLoader = coilSvgLoader,
+                    contentDescription = "Coil-SVG",
+                    imageSize = 150.dp,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "Coil-SVG",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color(0xFF2196F3),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    
-                    SubcomposeAsyncImage(
-                        model = imageUrl,
-                        imageLoader = coilSvgLoader,
-                        contentDescription = "$imageTitle - Coil-SVG",
-                        modifier = Modifier.size(150.dp),
-                        contentScale = ContentScale.Fit,
-                        loading = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        },
-                        error = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.LightGray),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "Error",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Red
-                                )
-                            }
-                        }
-                    )
-                }
-                
+                )
+
                 Spacer(modifier = Modifier.width(8.dp))
-                
+
                 // Resvg
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                DecoderImageColumn(
+                    modelUrl = imageUrl,
+                    decoderType = "resvg",
+                    labelColor = Color(0xFF4CAF50),
+                    imageLoader = resvgLoader,
+                    contentDescription = "Resvg",
+                    imageSize = 150.dp,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "Resvg",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color(0xFF4CAF50),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    
-                    SubcomposeAsyncImage(
-                        model = imageUrl,
-                        imageLoader = resvgLoader,
-                        contentDescription = "$imageTitle - Resvg",
-                        modifier = Modifier.size(150.dp),
-                        contentScale = ContentScale.Fit,
-                        loading = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        },
-                        error = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.LightGray),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "Error",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Red
-                                )
-                            }
-                        }
-                    )
-                }
+                )
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "💡 查看控制台日志对比两者的解码耗时",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
         }
     }
 }

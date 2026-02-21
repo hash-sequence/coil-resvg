@@ -12,8 +12,8 @@ import okio.ByteString.Companion.encodeUtf8
 import kotlin.time.measureTimedValue
 
 /**
- * Coil-SVG Decoder 的性能日志包装器
- * 用于测量和记录 Coil 原生 SVG 解码器的性能
+ * Performance logging wrapper for Coil-SVG Decoder
+ * Used to measure and record Coil native SVG decoder performance, and write time to [PerformanceTracker] for UI display
  */
 class PerformanceLoggingSvgDecoder(
     private val source: ImageSource,
@@ -22,11 +22,15 @@ class PerformanceLoggingSvgDecoder(
 
     override suspend fun decode(): DecodeResult {
         val (result, duration) = measureTimedValue {
-            // 使用 Coil 原生的 SVG 解码器
             SvgDecoder(source, options).decode()
         }
-        
-        println("Coil-SVG decode took ${duration.inWholeMilliseconds}ms")
+
+        val millis = duration.inWholeMilliseconds
+        val modelKey = options.getModelKey()
+        println("Coil-SVG decode took ${millis}ms (model=$modelKey)")
+        if (modelKey.isNotEmpty()) {
+            PerformanceTracker.record("coil-svg", modelKey, millis)
+        }
         return result
     }
 
@@ -36,7 +40,6 @@ class PerformanceLoggingSvgDecoder(
             options: Options,
             imageLoader: ImageLoader
         ): Decoder? {
-            // 检查是否是 SVG 文件
             if (!isSvg(result.source.source(), result.mimeType)) {
                 return null
             }

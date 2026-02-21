@@ -18,9 +18,6 @@ import okio.ByteString.Companion.encodeUtf8
 import okio.use
 import kotlin.math.roundToInt
 
-/**
- * Render SVG using Resvg (Rust)
- */
 class ResvgDecoder(
     private val source: ImageSource,
     private val options: Options
@@ -37,7 +34,6 @@ class ResvgDecoder(
             options: Options,
             imageLoader: ImageLoader
         ): Decoder? {
-            // Check if it's an SVG file
             if (!isSvg(result.source.source(), result.mimeType)) {
                 return null
             }
@@ -46,9 +42,9 @@ class ResvgDecoder(
 
         private fun isSvg(source: BufferedSource, mimeType: String?): Boolean {
             return mimeType == MIME_TYPE_SVG ||
-                   mimeType == MIME_TYPE_XML ||
-                   (source.rangeEquals(0, LEFT_ANGLE_BRACKET) &&
-                    source.indexOf(SVG_TAG, 0, SVG_DETECT_BUFFER_SIZE) != -1L)
+                    mimeType == MIME_TYPE_XML ||
+                    (source.rangeEquals(0, LEFT_ANGLE_BRACKET) &&
+                            source.indexOf(SVG_TAG, 0, SVG_DETECT_BUFFER_SIZE) != -1L)
         }
 
         private companion object {
@@ -61,39 +57,21 @@ class ResvgDecoder(
     }
 }
 
-/**
- * Platform-specific implementation: Render SVG using Resvg
- */
 expect suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): DecodeResult
 
-/**
- * Get platform display density, used for scaling when Size.ORIGINAL
- * Android returns actual screen density, other platforms return 1.0 (no scaling)
- */
 internal expect val PlatformContext.density: Float
 
-/**
- * SVG render size
- */
 internal data class SvgRenderSize(val width: Int, val height: Int)
 
-/**
- * SVG default size (used when SVG file doesn't specify size)
- */
 private const val SVG_DEFAULT_SIZE = 512
 
-/**
- * Calculate SVG render size, maintaining aspect ratio
- * Uses Coil's standard method to ensure consistent cross-platform behavior
- */
 @OptIn(ExperimentalCoilApi::class)
 internal fun computeSvgRenderSize(
     svgWidth: Float,
     svgHeight: Float,
     options: Options
 ): SvgRenderSize {
-    
-    // Handle Size.ORIGINAL request, scale according to screen density
+
     var scaledWidth = svgWidth
     var scaledHeight = svgHeight
     if (options.size.isOriginal) {
@@ -101,12 +79,10 @@ internal fun computeSvgRenderSize(
         if (scaledWidth > 0f) scaledWidth *= density
         if (scaledHeight > 0f) scaledHeight *= density
     }
-    
-    // Use SVG original size, or default if invalid
+
     val srcWidth = if (scaledWidth > 0f) scaledWidth.roundToInt() else SVG_DEFAULT_SIZE
     val srcHeight = if (scaledHeight > 0f) scaledHeight.roundToInt() else SVG_DEFAULT_SIZE
-    
-    // Use Coil standard method to calculate target size
+
     val (dstWidth, dstHeight) = DecodeUtils.computeDstSize(
         srcWidth = srcWidth,
         srcHeight = srcHeight,
@@ -114,8 +90,7 @@ internal fun computeSvgRenderSize(
         scale = options.scale,
         maxSize = options.maxBitmapSize,
     )
-    
-    // Calculate scale multiplier to maintain aspect ratio
+
     val multiplier = if (scaledWidth > 0f && scaledHeight > 0f) {
         DecodeUtils.computeSizeMultiplier(
             srcWidth = scaledWidth,
@@ -127,10 +102,9 @@ internal fun computeSvgRenderSize(
     } else {
         1f
     }
-    
-    // Apply scale multiplier to original size, maintaining aspect ratio
+
     val renderWidth = if (scaledWidth > 0f) (multiplier * scaledWidth).toInt() else dstWidth
     val renderHeight = if (scaledHeight > 0f) (multiplier * scaledHeight).toInt() else dstHeight
-    
+
     return SvgRenderSize(renderWidth, renderHeight)
 }
