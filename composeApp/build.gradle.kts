@@ -1,6 +1,3 @@
-import gobley.gradle.GobleyHost
-import gobley.gradle.cargo.dsl.appleMobile
-import gobley.gradle.cargo.dsl.jvm
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -11,28 +8,6 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
-    alias(libs.plugins.gobleyCargo)
-    alias(libs.plugins.devGobleyUniffi)
-    kotlin("plugin.atomicfu") version libs.versions.kotlin
-}
-
-cargo {
-    packageDirectory = layout.projectDirectory.dir("../resvg-core")
-    builds.jvm {
-        embedRustLibrary = (rustTarget == GobleyHost.current.rustTarget)
-    }
-    builds.appleMobile {
-        variants {
-            buildTaskProvider.configure {
-                when (rustTarget.cinteropName) {
-                    "ios" -> additionalEnvironment.put("IPHONEOS_DEPLOYMENT_TARGET", "15.0.0")
-                    "tvos" -> additionalEnvironment.put("TVOS_DEPLOYMENT_TARGET", "15.0.0")
-                    "watchos" -> additionalEnvironment.put("WATCHOS_DEPLOYMENT_TARGET", "9.0.0")
-                    else -> {}
-                }
-            }
-        }
-    }
 }
 
 kotlin {
@@ -72,6 +47,7 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
+            implementation(projects.coilResvgDecoder)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
@@ -105,15 +81,16 @@ kotlin {
 }
 
 android {
-    namespace = "com.hashsequence.coilresvg"
+    namespace = "com.hashsequence.coilresvg.example"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.hashsequence.coilresvg"
+        applicationId = "com.hashsequence.coilresvg.example"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+        ndk.abiFilters += setOf("arm64-v8a", "x86_64")
     }
     packaging {
         resources {
@@ -137,7 +114,7 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.hashsequence.coilresvg.MainKt"
+        mainClass = "com.hashsequence.coilresvg.example.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

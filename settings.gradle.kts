@@ -33,3 +33,4 @@ plugins {
 }
 
 include(":composeApp")
+include(":coil-resvg-decoder")
