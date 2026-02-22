@@ -1,76 +1,102 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM).
+# coil-resvg
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+A Kotlin Multiplatform SVG decoder for [Coil 3](https://coil-kt.github.io/coil/), powered by [resvg](https://github.com/nickel-org/resvg) (Rust).
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+Renders SVG images to pixel-perfect bitmaps using the resvg engine via Rust FFI, with full text/font support on every platform.
 
-### Build and Run Android Application
+## Supported Platforms
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+| Platform | Status |
+|----------|--------|
+| Android  | ✅     |
+| iOS      | ✅     |
+| JVM (Desktop) | ✅ |
+| JS (Browser)  | ✅ |
+| Wasm (Browser) | ✅ |
 
-### Build and Run Desktop (JVM) Application
+## Installation
 
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:run
-  ```
+Add the dependency to your `build.gradle.kts`:
 
-### Build and Run Web Application
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("com.hashsequence:coil-resvg:<version>")
+}
+```
 
-To build and run the development version of the web app, use the run configuration from the run widget
-in your IDE's toolbar or run it directly from the terminal:
-- for the Wasm target (faster, modern browsers):
-  - on macOS/Linux
-    ```shell
-    ./gradlew :composeApp:wasmJsBrowserDevelopmentRun
-    ```
-  - on Windows
-    ```shell
-    .\gradlew.bat :composeApp:wasmJsBrowserDevelopmentRun
-    ```
-- for the JS target (slower, supports older browsers):
-  - on macOS/Linux
-    ```shell
-    ./gradlew :composeApp:jsBrowserDevelopmentRun
-    ```
-  - on Windows
-    ```shell
-    .\gradlew.bat :composeApp:jsBrowserDevelopmentRun
-    ```
+For Kotlin Multiplatform projects, add it to `commonMain`:
 
-### Build and Run iOS Application
+```kotlin
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation("com.hashsequence:coil-resvg:<version>")
+        }
+    }
+}
+```
 
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+## Usage
 
----
+Register `ResvgDecoder` as a component in your Coil `ImageLoader`:
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
-[Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform/#compose-multiplatform),
-[Kotlin/Wasm](https://kotl.in/wasm/)…
+```kotlin
+val imageLoader = ImageLoader.Builder(context)
+    .components {
+        add(ResvgDecoder.Factory())
+    }
+    .build()
+```
 
-We would appreciate your feedback on Compose/Web and Kotlin/Wasm in the public Slack channel [#compose-web](https://slack-chats.kotlinlang.org/c/compose-web).
-If you face any issues, please report them on [YouTrack](https://youtrack.jetbrains.com/newIssue?project=CMP).
+With Compose Multiplatform, set it as the default via `setSingletonImageLoaderFactory`:
+
+```kotlin
+setSingletonImageLoaderFactory { context ->
+    ImageLoader.Builder(context)
+        .components {
+            add(ResvgDecoder.Factory())
+        }
+        .build()
+}
+```
+
+Then load SVG images as usual with Coil:
+
+```kotlin
+AsyncImage(
+    model = "https://example.com/image.svg",
+    contentDescription = null,
+)
+```
+
+That's it — SVG files will be automatically detected and rendered by resvg.
+
+## Why resvg?
+
+- **Pixel-perfect rendering** — resvg is one of the most accurate SVG renderers available, passing the SVG static rendering test suite.
+- **Text & font support** — Automatically loads system fonts on each platform (Roboto on Android, SF on iOS, system fonts on Desktop).
+- **No browser dependency** — Unlike AndroidSVG or WebView-based approaches, resvg is a standalone renderer with zero platform UI dependencies.
+- **Consistent cross-platform output** — The same Rust engine runs on all platforms, producing identical rendering results everywhere.
+
+## How It Works
+
+The library uses [resvg](https://github.com/nickel-org/resvg) + [tiny-skia](https://github.com/nickel-org/tiny-skia) compiled as a native Rust library, bridged to Kotlin via [UniFFI](https://mozilla.github.io/uniffi-rs/) and [Gobley](https://github.com/nickel-org/gobley). The SVG is parsed by [usvg](https://github.com/nickel-org/usvg), rendered to RGBA pixels by resvg, and then converted to a platform-native bitmap (e.g., `android.graphics.Bitmap`, `UIImage`, `BufferedImage`).
+
+## License
+
+```
+Copyright 2026 HashSequence
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
