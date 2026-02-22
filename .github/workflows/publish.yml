@@ -1,0 +1,73 @@
+name: Publish to Maven Central
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, x86_64-pc-windows-gnu
+
+      - name: Install Zig (cross-compile linker for Linux)
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Install MinGW (cross-compile linker for Windows)
+        run: brew install mingw-w64
+
+      - name: Setup Cross-Compilation Linkers
+        run: |
+          mkdir -p .cargo-scripts
+
+          cat > .cargo-scripts/x86_64-linux-linker.sh << 'EOF'
+          #!/bin/bash
+          zig cc -target x86_64-linux-gnu "$@"
+          EOF
+
+          cat > .cargo-scripts/aarch64-linux-linker.sh << 'EOF'
+          #!/bin/bash
+          zig cc -target aarch64-linux-gnu "$@"
+          EOF
+
+          chmod +x .cargo-scripts/*.sh
+
+          # Configure Cargo to use Zig as the linker for Linux targets
+          mkdir -p ~/.cargo
+          cat >> ~/.cargo/config.toml << TOML
+
+          [target.x86_64-unknown-linux-gnu]
+          linker = "${{ github.workspace }}/.cargo-scripts/x86_64-linux-linker.sh"
+
+          [target.aarch64-unknown-linux-gnu]
+          linker = "${{ github.workspace }}/.cargo-scripts/aarch64-linux-linker.sh"
+          TOML
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Publish and Release to Maven Central
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: ./gradlew :coil-resvg:publishAndReleaseToMavenCentral --no-configuration-cache

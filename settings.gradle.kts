@@ -1,4 +1,4 @@
-rootProject.name = "CoilResvg"
+rootProject.name = "CoilResvgProject"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -17,6 +17,8 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
+        // Local Maven repository for testing published artifacts
+        mavenLocal()
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
@@ -33,4 +35,4 @@ plugins {
 }
 
 include(":composeApp")
-include(":coil-resvg-decoder")
+include(":coil-resvg")

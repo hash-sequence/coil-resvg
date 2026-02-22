@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
@@ -30,14 +29,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
+import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
-import coil3.request.crossfade
+import coilresvgproject.composeapp.generated.resources.Res
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-
-import coilresvg.composeapp.generated.resources.Res
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
@@ -47,25 +45,41 @@ fun PerformanceComparisonApp() {
 
     val context = LocalPlatformContext.current
 
+    // Get the base ImageLoader with platform-specific components (e.g. FileFetcher on JVM)
+    val baseImageLoader = SingletonImageLoader.get(context)
+
     // Create ImageLoader using Coil-SVG
-    val coilSvgLoader = remember {
+    val coilSvgLoader = remember(baseImageLoader) {
         ImageLoader.Builder(context)
             .components {
                 add(PerformanceLoggingSvgDecoder.Factory())
+                @Suppress("UNCHECKED_CAST")
+                baseImageLoader.components.fetcherFactories.forEach { (factory, type) ->
+                    add(
+                        factory as coil3.fetch.Fetcher.Factory<Any>,
+                        type as kotlin.reflect.KClass<Any>
+                    )
+                }
             }
             .build()
     }
 
     // Create ImageLoader using Resvg
-    val resvgLoader = remember {
+    val resvgLoader = remember(baseImageLoader) {
         ImageLoader.Builder(context)
             .components {
                 add(PerformanceLoggingResvgDecoder.Factory())
+                @Suppress("UNCHECKED_CAST")
+                baseImageLoader.components.fetcherFactories.forEach { (factory, type) ->
+                    add(
+                        factory as coil3.fetch.Fetcher.Factory<Any>,
+                        type as kotlin.reflect.KClass<Any>
+                    )
+                }
             }
             .build()
     }
 
-    // All test images (including test_icon)
     val testImages = remember {
         listOf(
             Res.getUri("drawable/test_icon.svg"),
