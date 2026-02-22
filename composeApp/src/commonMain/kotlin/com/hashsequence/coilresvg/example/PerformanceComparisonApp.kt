@@ -1,8 +1,10 @@
 package com.hashsequence.coilresvg.example
 
 import androidx.compose.foundation.background
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +29,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
+
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
@@ -35,9 +40,13 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coilresvgproject.composeapp.generated.resources.Res
-import org.jetbrains.compose.resources.ExperimentalResourceApi
+import coilresvgproject.composeapp.generated.resources.blend_paintorder_marker
+import coilresvgproject.composeapp.generated.resources.flower_mandala
+import coilresvgproject.composeapp.generated.resources.test_inner_image
+import coilresvgproject.composeapp.generated.resources.test_shadow_blur
+import coilresvgproject.composeapp.generated.resources.test_text
+import org.jetbrains.compose.resources.DrawableResource
 
-@OptIn(ExperimentalResourceApi::class)
 @Composable
 fun PerformanceComparisonApp() {
     var shouldLoadImages by remember { mutableStateOf(false) }
@@ -45,13 +54,12 @@ fun PerformanceComparisonApp() {
 
     val context = LocalPlatformContext.current
 
-    // Get the base ImageLoader with platform-specific components (e.g. FileFetcher on JVM)
     val baseImageLoader = SingletonImageLoader.get(context)
 
-    // Create ImageLoader using Coil-SVG
     val coilSvgLoader = remember(baseImageLoader) {
         ImageLoader.Builder(context)
             .components {
+                add(DrawableResourceFetcher.Factory())
                 add(PerformanceLoggingSvgDecoder.Factory())
                 @Suppress("UNCHECKED_CAST")
                 baseImageLoader.components.fetcherFactories.forEach { (factory, type) ->
@@ -64,10 +72,10 @@ fun PerformanceComparisonApp() {
             .build()
     }
 
-    // Create ImageLoader using Resvg
     val resvgLoader = remember(baseImageLoader) {
         ImageLoader.Builder(context)
             .components {
+                add(DrawableResourceFetcher.Factory())
                 add(PerformanceLoggingResvgDecoder.Factory())
                 @Suppress("UNCHECKED_CAST")
                 baseImageLoader.components.fetcherFactories.forEach { (factory, type) ->
@@ -80,33 +88,50 @@ fun PerformanceComparisonApp() {
             .build()
     }
 
-    val testImages = remember {
+    val testSvgs = remember {
         listOf(
-            Res.getUri("drawable/test_icon.svg"),
-            Res.getUri("drawable/flower_mandala.svg"),
-            Res.getUri("drawable/test_inner_image.svg"),
-            Res.getUri("drawable/advanced_filters_stress.svg"),
-            Res.getUri("drawable/cosmic_nightscape.svg")
+            Pair(Res.drawable.test_text, "Text\nEmoji & CJK"),
+            Pair(Res.drawable.flower_mandala, "<use> clone\n& gradient"),
+            Pair(Res.drawable.test_shadow_blur, "Shadow & blur\nfilter chain"),
+            Pair(Res.drawable.test_inner_image, "Embedded\nbase64 image"),
+            Pair(Res.drawable.blend_paintorder_marker, "Blend, marker\n& paint-order"),
         )
     }
 
     MaterialTheme {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(Color(0xFFF5F5F5))
                 .safeContentPadding()
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Header and button in one row: Coil-SVG | Button | Resvg
-            Row(
+            // 表头约 80dp，副标题约 30dp，留给 5 行卡片的高度
+            // 每行卡片额外占用约 8dp（Card padding），label 宽 60dp
+            val availableHeight = maxHeight
+            val headerHeight = 80.dp
+            val imageSize = min((availableHeight - headerHeight) / 5 - 8.dp, 150.dp)
+
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (shouldLoadImages) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Text(
+                        text = "Test",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.DarkGray,
+                        modifier = Modifier.width(80.dp),
+                        textAlign = TextAlign.Center
+                    )
+
                     Text(
                         text = "Coil-SVG",
                         style = MaterialTheme.typography.titleMedium,
@@ -115,23 +140,19 @@ fun PerformanceComparisonApp() {
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center
                     )
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
 
-                Button(
-                    onClick = {
-                        if (shouldLoadImages) {
-                            reloadKey++
-                        } else {
-                            shouldLoadImages = true
+                    Button(
+                        onClick = {
+                            if (shouldLoadImages) {
+                                reloadKey++
+                            } else {
+                                shouldLoadImages = true
+                            }
                         }
+                    ) {
+                        Text(if (shouldLoadImages) "Test Again" else "Start Test")
                     }
-                ) {
-                    Text(if (shouldLoadImages) "Test Again" else "Start Test")
-                }
 
-                if (shouldLoadImages) {
                     Text(
                         text = "Resvg",
                         style = MaterialTheme.typography.titleMedium,
@@ -140,29 +161,28 @@ fun PerformanceComparisonApp() {
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center
                     )
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
                 }
-            }
 
-            // Hint text
-            Text(
-                text = "Memory cache disabled, forcing re-render",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = "Memory cache disabled, forcing re-render",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.DarkGray.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                    textAlign = TextAlign.Center
+                )
 
-            if (shouldLoadImages) {
+                if (shouldLoadImages) {
 
-                key(reloadKey) {
-                    testImages.forEach { imageUrl ->
-                        ComparisonCard(
-                            imageUrl = imageUrl,
-                            coilSvgLoader = coilSvgLoader,
-                            resvgLoader = resvgLoader
-                        )
+                    key(reloadKey) {
+                        testSvgs.forEach { (svg, label) ->
+                            ComparisonCard(
+                                svgResource = svg,
+                                label = label,
+                                coilSvgLoader = coilSvgLoader,
+                                resvgLoader = resvgLoader,
+                                imageSize = imageSize
+                            )
+                        }
                     }
                 }
             }
@@ -170,32 +190,28 @@ fun PerformanceComparisonApp() {
     }
 }
 
-/**
- * Image display column for a single decoder, including label, image, and decode time display
- */
 @Composable
 fun DecoderImageColumn(
-    modelUrl: String,
+    svgResource: DrawableResource,
     decoderType: String,
     labelColor: Color,
     imageLoader: ImageLoader,
     contentDescription: String,
-    imageSize: androidx.compose.ui.unit.Dp,
+    imageSize: Dp,
     modifier: Modifier = Modifier
 ) {
     val context = LocalPlatformContext.current
+    val modelKey = svgResource.hashCode().toString()
 
-    // Build ImageRequest, write modelUrl to extras for Decoder recognition
-    val request = remember(modelUrl) {
+    val request = remember(svgResource) {
         ImageRequest.Builder(context)
-            .data(modelUrl)
+            .data(svgResource)
             .memoryCachePolicy(CachePolicy.DISABLED)
-            .apply { extras[ModelKeyExtra] = modelUrl }
+            .apply { extras[ModelKeyExtra] = modelKey }
             .build()
     }
 
-    // Read decode time from PerformanceTracker (Compose can directly observe mutableStateMapOf changes)
-    val decodeTime = PerformanceTracker.get(decoderType, modelUrl)
+    val decodeTime = PerformanceTracker.get(decoderType, modelKey)
 
     Box(
         modifier = modifier
@@ -230,10 +246,9 @@ fun DecoderImageColumn(
             }
         )
 
-        // Decode time display in bottom right corner
         Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
+                .align(Alignment.TopEnd)
                 .padding(4.dp)
         ) {
             DecodeTimeLabel(decodeTime = decodeTime, color = labelColor)
@@ -241,9 +256,6 @@ fun DecoderImageColumn(
     }
 }
 
-/**
- * Decode time label
- */
 @Composable
 fun DecodeTimeLabel(decodeTime: Long?, color: Color) {
     Box(
@@ -265,46 +277,60 @@ fun DecodeTimeLabel(decodeTime: Long?, color: Color) {
 
 @Composable
 fun ComparisonCard(
-    imageUrl: String,
+    svgResource: DrawableResource,
+    label: String,
     coilSvgLoader: ImageLoader,
-    resvgLoader: ImageLoader
+    resvgLoader: ImageLoader,
+    imageSize: Dp = 150.dp
 ) {
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier.padding(4.dp)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.DarkGray,
+            modifier = Modifier.width(60.dp),
+            textAlign = TextAlign.Center
+        )
+
+        Card(
+            modifier = Modifier.weight(1f)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(4.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Coil-SVG
                 DecoderImageColumn(
-                    modelUrl = imageUrl,
+                    svgResource = svgResource,
                     decoderType = "coil-svg",
                     labelColor = Color(0xFF2196F3),
                     imageLoader = coilSvgLoader,
                     contentDescription = "Coil-SVG",
-                    imageSize = 150.dp,
+                    imageSize = imageSize,
                     modifier = Modifier.weight(1f)
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(4.dp))
 
-                // Resvg
                 DecoderImageColumn(
-                    modelUrl = imageUrl,
+                    svgResource = svgResource,
                     decoderType = "resvg",
                     labelColor = Color(0xFF4CAF50),
                     imageLoader = resvgLoader,
                     contentDescription = "Resvg",
-                    imageSize = 150.dp,
+                    imageSize = imageSize,
                     modifier = Modifier.weight(1f)
                 )
             }
         }
     }
+
+
 }

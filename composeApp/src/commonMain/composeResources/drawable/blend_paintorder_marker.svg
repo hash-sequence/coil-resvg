@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+
+    <!-- Waveform gradient stroke: cyan → purple → pink -->
+    <linearGradient id="wave_grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00DDFF"/>
+      <stop offset="50%" stop-color="#7B68EE"/>
+      <stop offset="100%" stop-color="#FF6B9D"/>
+    </linearGradient>
+
+    <!-- Subtle fill under waveform for depth -->
+    <linearGradient id="wave_area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7B68EE" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#16213e" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Neon glow for waveform -->
+    <filter id="glow_f" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" result="colored"
+        values="0 0 0 0 0.1  0 0 0 0 0.55  0 0 0 0 1  0 0 0 2 0"/>
+      <feMerge>
+        <feMergeNode in="colored"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow for lens flares -->
+    <filter id="flare" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Glowing dot marker (orient-aware) -->
+    <marker id="dot_m" viewBox="0 0 10 10" refX="5" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <circle cx="5" cy="5" r="4" fill="#FFFFFF" fill-opacity="0.3"/>
+      <circle cx="5" cy="5" r="2.5" fill="#FFFFFF" fill-opacity="0.9"/>
+    </marker>
+  </defs>
+
+  <rect width="400" height="400" fill="url(#bg)"/>
+
+  <!-- ===== Starbursts (paint-order: stroke fill) ===== -->
+  <!-- Thick arms so stroke-behind-fill halo effect is clearly visible -->
+
+  <!-- Large 6-pointed flare — gold body, pink halo -->
+  <g transform="translate(68, 100) rotate(15)" filter="url(#flare)">
+    <path d="M0,-22 L4,-7 L19,-11 L8,0 L19,11 L4,7 L0,22 L-4,7 L-19,11 L-8,0 L-19,-11 L-4,-7Z"
+          fill="#FFD700"
+          stroke="#FF6B9D" stroke-width="7" stroke-linejoin="round"
+          style="paint-order: stroke fill;"/>
+  </g>
+
+  <!-- Medium 4-pointed flare — cyan body, purple halo -->
+  <g transform="translate(342, 78) rotate(-12)" filter="url(#flare)">
+    <path d="M0,-15 L5.5,-5.5 L15,0 L5.5,5.5 L0,15 L-5.5,5.5 L-15,0 L-5.5,-5.5Z"
+          fill="#00F2EA"
+          stroke="#7B68EE" stroke-width="6" stroke-linejoin="round"
+          style="paint-order: stroke fill;"/>
+  </g>
+
+  <!-- Small 4-pointed flare — white body, cyan halo -->
+  <g transform="translate(328, 198) rotate(25)" filter="url(#flare)">
+    <path d="M0,-11 L4,-4 L11,0 L4,4 L0,11 L-4,4 L-11,0 L-4,-4Z"
+          fill="#FFFFFF"
+          stroke="#00DDFF" stroke-width="5" stroke-linejoin="round"
+          style="paint-order: stroke fill;"/>
+  </g>
+
+  <!-- Tiny 4-pointed flare — pink body, gold halo -->
+  <g transform="translate(62, 242) rotate(-18)" filter="url(#flare)">
+    <path d="M0,-8 L3,-3 L8,0 L3,3 L0,8 L-3,3 L-8,0 L-3,-3Z"
+          fill="#FF6B9D"
+          stroke="#FFD700" stroke-width="4" stroke-linejoin="round"
+          style="paint-order: stroke fill;"/>
+  </g>
+
+  <!-- ===== Audio waveform (marker + filter) ===== -->
+  <!-- Each C-segment endpoint = a peak or valley, so markers land on crests -->
+  <g filter="url(#glow_f)">
+    <!-- Gradient-filled area under curve -->
+    <path d="M20,325 C40,325 60,302 80,302 C100,302 120,342 140,342
+             C160,342 180,296 200,296 C220,296 240,340 260,340
+             C280,340 300,304 320,304 C340,304 368,322 385,322
+             L385,385 L20,385Z"
+          fill="url(#wave_area)"/>
+    <!-- Waveform curve — markers sit exactly on peaks & valleys -->
+    <path d="M20,325 C40,325 60,302 80,302 C100,302 120,342 140,342
+             C160,342 180,296 200,296 C220,296 240,340 260,340
+             C280,340 300,304 320,304 C340,304 368,322 385,322"
+          fill="none" stroke="url(#wave_grad)" stroke-width="2.5" stroke-linecap="round"
+          marker-start="url(#dot_m)" marker-mid="url(#dot_m)" marker-end="url(#dot_m)"/>
+  </g>
+
+  <!-- ===== TikTok-style RGB split music note (isolation + mix-blend-mode) ===== -->
+  <g style="isolation: isolate;" transform="translate(200, 148)">
+    <!-- Red channel — shifted left-up -->
+    <g fill="#FF004F" style="mix-blend-mode: screen;" opacity="0.9" transform="translate(-7,-4)">
+      <ellipse cx="-12" cy="58" rx="28" ry="22" transform="rotate(-25,-12,58)"/>
+      <rect x="8" y="-80" width="14" height="140" rx="3"/>
+      <path d="M22,-80 Q22,-88 30,-90 L62,-98 Q72,-100 72,-90 L72,-58 Q72,-50 62,-48 L22,-40Z"/>
+    </g>
+    <!-- White channel — center -->
+    <g fill="#FFFFFF" style="mix-blend-mode: screen;" opacity="0.85">
+      <ellipse cx="-12" cy="58" rx="28" ry="22" transform="rotate(-25,-12,58)"/>
+      <rect x="8" y="-80" width="14" height="140" rx="3"/>
+      <path d="M22,-80 Q22,-88 30,-90 L62,-98 Q72,-100 72,-90 L72,-58 Q72,-50 62,-48 L22,-40Z"/>
+    </g>
+    <!-- Cyan channel — shifted right-down -->
+    <g fill="#00F2EA" style="mix-blend-mode: screen;" opacity="0.9" transform="translate(7,4)">
+      <ellipse cx="-12" cy="58" rx="28" ry="22" transform="rotate(-25,-12,58)"/>
+      <rect x="8" y="-80" width="14" height="140" rx="3"/>
+      <path d="M22,-80 Q22,-88 30,-90 L62,-98 Q72,-100 72,-90 L72,-58 Q72,-50 62,-48 L22,-40Z"/>
+    </g>
+  </g>
+</svg>
