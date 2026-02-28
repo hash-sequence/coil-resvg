@@ -2,7 +2,38 @@
 
 A Kotlin Multiplatform SVG decoder for [Coil 3](https://coil-kt.github.io/coil/), powered by [resvg](https://github.com/nickel-org/resvg) (Rust).
 
-Renders SVG images to pixel-perfect bitmaps using the resvg engine via Rust FFI, with full text/font support on every platform.
+Renders SVG images to pixel-perfect bitmaps using the resvg engine via Rust FFI, with text/font support on every platform.
+
+## Screenshot Comparison
+
+| Android | iOS |
+|---|---|
+| ![Android](images/Android.jpg) | ![iOS](images/iOS.jpg) |
+
+## SVG Examples
+
+<details>
+  <summary>Click to expand SVG previews</summary>
+  <table>
+    <tr>
+      <td>
+        <img src="composeApp/src/commonMain/composeResources/drawable/test_text.svg?raw=1" width="320" /></td>
+      <td>
+        <img src="composeApp/src/commonMain/composeResources/drawable/flower_mandala.svg?raw=1" width="320" /></td>
+    </tr>
+    <tr>
+      <td>
+        <img src="composeApp/src/commonMain/composeResources/drawable/test_shadow_blur.svg?raw=1" width="320" /></td>
+      <td>
+        <img src="composeApp/src/commonMain/composeResources/drawable/test_inner_image.svg?raw=1" width="320" /></td>
+    </tr>
+    <tr>
+      <td>
+        <img src="composeApp/src/commonMain/composeResources/drawable/blend_paintorder_marker.svg?raw=1" width="320" /></td>
+      <td></td>
+    </tr>
+  </table>
+</details>
 
 ## Supported Platforms
 
@@ -14,6 +45,8 @@ Renders SVG images to pixel-perfect bitmaps using the resvg engine via Rust FFI,
 | JS (Browser)  | ✅ |
 | Wasm (Browser) | ✅ |
 
+> Note: The JS / Wasm (Browser) targets currently use the browser's native SVG rendering pipeline, not resvg FFI.
+
 ## Installation
 
 Add the dependency to your `build.gradle.kts`:
@@ -21,7 +54,7 @@ Add the dependency to your `build.gradle.kts`:
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("com.hashsequence:coil-resvg:<version>")
+    implementation("com.hashsequence:coil-resvg:1.0.0")
 }
 ```
 
@@ -31,7 +64,7 @@ For Kotlin Multiplatform projects, add it to `commonMain`:
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("com.hashsequence:coil-resvg:<version>")
+            implementation("com.hashsequence:coil-resvg:1.0.0")
         }
     }
 }
@@ -40,16 +73,6 @@ kotlin {
 ## Usage
 
 Register `ResvgDecoder` as a component in your Coil `ImageLoader`:
-
-```kotlin
-val imageLoader = ImageLoader.Builder(context)
-    .components {
-        add(ResvgDecoder.Factory())
-    }
-    .build()
-```
-
-With Compose Multiplatform, set it as the default via `setSingletonImageLoaderFactory`:
 
 ```kotlin
 setSingletonImageLoaderFactory { context ->
@@ -75,9 +98,17 @@ That's it — SVG files will be automatically detected and rendered by resvg.
 ## Why resvg?
 
 - **Pixel-perfect rendering** — resvg is one of the most accurate SVG renderers available, passing the SVG static rendering test suite.
-- **Text & font support** — Automatically loads system fonts on each platform (Roboto on Android, SF on iOS, system fonts on Desktop).
+- **Text & font support** — Loads system fonts on each platform (Android/iOS/Desktop).
 - **No browser dependency** — Unlike AndroidSVG or WebView-based approaches, resvg is a standalone renderer with zero platform UI dependencies.
 - **Consistent cross-platform output** — The same Rust engine runs on all platforms, producing identical rendering results everywhere.
+
+### Fonts: fallback behavior & performance
+
+- Because resvg is platform-independent, its font behavior may be less polished than each platform's native text stack (e.g., weaker fallback selection, and emoji may not render correctly on iOS 26).
+- SVGs with text:
+  - First render may be slower because it scans the system font database to find usable fonts.
+  - Subsequent renders hit a cache and won't rescan system fonts.
+- SVGs without text: rendering is not affected by the font scan on first render.
 
 ## How It Works
 
