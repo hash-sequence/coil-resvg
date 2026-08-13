@@ -47,9 +47,9 @@ kotlin {
         }
         commonMain.dependencies {
             // Use remote Maven repository for testing
-            // implementation("com.hashsequence:coil-resvg:1.0.0")
+            // implementation("com.hashsequence:coil-resvg:1.1.0")
             // Use local Maven repository for testing
-            // implementation("com.hashsequence:coil-resvg:1.0.0-LOCAL")
+            // implementation("com.hashsequence:coil-resvg:1.1.0-LOCAL")
             // Use project dependency for development
             implementation(projects.coilResvg)
             implementation(libs.compose.runtime)
