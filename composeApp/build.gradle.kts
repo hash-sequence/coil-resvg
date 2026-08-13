@@ -76,7 +76,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
-        ndk.abiFilters += setOf("arm64-v8a", "x86_64")
+        ndk.abiFilters += setOf("armeabi-v7a", "arm64-v8a", "x86_64")
     }
     packaging {
         resources {

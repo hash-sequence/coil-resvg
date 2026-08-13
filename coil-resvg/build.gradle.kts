@@ -99,7 +99,7 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.android.library.minSdk.get().toInt()
-        ndk.abiFilters += setOf("arm64-v8a", "x86_64")
+        ndk.abiFilters += setOf("armeabi-v7a", "arm64-v8a", "x86_64")
         consumerProguardFiles("consumer-rules.pro")
     }
     compileOptions {
