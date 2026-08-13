@@ -1,5 +1,7 @@
 package com.hashsequence.coilresvg
 
+import coil3.BitmapImage
+import coil3.Image
 import coil3.PlatformContext
 import coil3.asImage
 import coil3.decode.DecodeResult
@@ -8,10 +10,36 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.ColorAlphaType
+import org.jetbrains.skia.EncodedImageFormat
+import org.jetbrains.skia.Image as SkiaImage
 import org.jetbrains.skia.ImageInfo
 
 internal actual val PlatformContext.density: Float
     get() = 1f
+
+internal actual fun encodeCachedBitmap(image: Image): ByteArray? {
+    val bitmap = (image as? BitmapImage)?.bitmap ?: return null
+    val skiaImage = SkiaImage.makeFromBitmap(bitmap)
+    return try {
+        val data = skiaImage.encodeToData(EncodedImageFormat.PNG, 100) ?: return null
+        try {
+            data.bytes
+        } finally {
+            data.close()
+        }
+    } finally {
+        skiaImage.close()
+    }
+}
+
+internal actual fun decodeCachedBitmap(bytes: ByteArray): Image? {
+    val skiaImage = SkiaImage.makeFromEncoded(bytes)
+    return try {
+        Bitmap.makeFromImage(skiaImage).apply { setImmutable() }.asImage()
+    } finally {
+        skiaImage.close()
+    }
+}
 
 actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): DecodeResult =
     withContext(Dispatchers.Default) {

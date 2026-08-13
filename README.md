@@ -1,6 +1,6 @@
 # coil-resvg
 
-A Kotlin Multiplatform SVG decoder for [Coil 3](https://coil-kt.github.io/coil/), powered by [resvg](https://github.com/nickel-org/resvg) (Rust).
+A Kotlin Multiplatform SVG decoder for [Coil 3](https://coil-kt.github.io/coil/), powered by [resvg](https://github.com/linebender/resvg) (Rust).
 
 Renders SVG images to pixel-perfect bitmaps using the resvg engine via Rust FFI, with text/font support on every platform.
 
@@ -95,6 +95,27 @@ AsyncImage(
 
 That's it — SVG files will be automatically detected and rendered by resvg.
 
+### Rendered bitmap disk cache
+
+`ResvgDecoder.Factory()` caches rendered bitmaps in Coil's disk cache by default. If the SVG
+content, explicit Coil `diskCacheKey` (when set), requested size, scale, precision, maximum bitmap
+size, and display density are unchanged, a later request decodes the cached PNG and skips resvg
+rendering. The entries share Coil's existing LRU size limit and respect each request's
+`diskCachePolicy`.
+
+To disable caching rendered bitmaps while keeping the decoder enabled:
+
+```kotlin
+ImageLoader.Builder(context)
+    .components {
+        add(ResvgDecoder.Factory(diskCacheEnabled = false))
+    }
+    .build()
+```
+
+Coil does not provide a disk cache by default on browser targets, so JS and Wasm continue to render
+normally unless Coil adds filesystem-backed disk caching for those platforms.
+
 ## Why resvg?
 
 - **Pixel-perfect rendering** — resvg is one of the most accurate SVG renderers available, passing the SVG static rendering test suite.
@@ -112,7 +133,7 @@ That's it — SVG files will be automatically detected and rendered by resvg.
 
 ## How It Works
 
-The library uses [resvg](https://github.com/nickel-org/resvg) + [tiny-skia](https://github.com/nickel-org/tiny-skia) compiled as a native Rust library, bridged to Kotlin via [UniFFI](https://mozilla.github.io/uniffi-rs/) and [Gobley](https://github.com/nickel-org/gobley). The SVG is parsed by [usvg](https://github.com/nickel-org/usvg), rendered to RGBA pixels by resvg, and then converted to a platform-native bitmap (e.g., `android.graphics.Bitmap`, `UIImage`, `BufferedImage`).
+The library uses [resvg](https://github.com/linebender/resvg) + [tiny-skia](https://github.com/linebender/tiny-skia) compiled as a native Rust library, bridged to Kotlin via [UniFFI](https://mozilla.github.io/uniffi-rs/) and [Gobley](https://github.com/gobley/gobley). The SVG is parsed by [usvg](https://github.com/linebender/resvg/tree/main/crates/usvg), rendered to RGBA pixels by resvg, and then converted to a platform-native bitmap (e.g., `android.graphics.Bitmap`, `UIImage`, `BufferedImage`).
 
 ## License
 
@@ -123,7 +144,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,

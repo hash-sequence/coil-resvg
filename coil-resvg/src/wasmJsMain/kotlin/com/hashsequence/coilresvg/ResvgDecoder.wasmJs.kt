@@ -35,6 +35,10 @@ private external fun consoleError(message: String)
 internal actual val PlatformContext.density: Float
     get() = 1f
 
+internal actual fun encodeCachedBitmap(image: coil3.Image): ByteArray? = null
+
+internal actual fun decodeCachedBitmap(bytes: ByteArray): coil3.Image? = null
+
 @OptIn(ExperimentalWasmJsInterop::class)
 actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): DecodeResult {
     val svgString = svgBytes.decodeToString()

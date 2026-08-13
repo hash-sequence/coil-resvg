@@ -89,6 +89,12 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.coil.compose)
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+        jvmTest.dependencies {
+            implementation(compose.desktop.currentOs)
+        }
     }
 }
 
