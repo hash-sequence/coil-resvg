@@ -42,6 +42,9 @@ cargo {
 }
 
 uniffi {
+    // Gobley generates these rules, but does not package them into the published AAR.
+    // Keep a checked-in consumer rules file so R8 cannot rename JNA's JNI-facing fields.
+    generateProguardRules.set(false)
     generateFromLibrary {
         packageName = "com.hashsequence.coilresvg"
     }
@@ -97,6 +100,7 @@ android {
     defaultConfig {
         minSdk = libs.versions.android.library.minSdk.get().toInt()
         ndk.abiFilters += setOf("arm64-v8a", "x86_64")
+        consumerProguardFiles("consumer-rules.pro")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
