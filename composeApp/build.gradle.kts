@@ -44,43 +44,24 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
-            implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
             // Use remote Maven repository for testing
-            implementation("com.hashsequence:coil-resvg:1.0.0")
+            // implementation("com.hashsequence:coil-resvg:1.0.0")
             // Use local Maven repository for testing
             // implementation("com.hashsequence:coil-resvg:1.0.0-LOCAL")
             // Use project dependency for development
-            // implementation(projects.coilResvg)
+            implementation(projects.coilResvg)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
-            implementation(libs.compose.uiToolingPreview)
-            implementation(libs.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.coil.compose)
-            implementation(libs.coil.network.ktor)
             implementation(libs.coil.svg)
-        }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
-            implementation(libs.ktor.client.okhttp)
-        }
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
-        }
-        jsMain.dependencies {
-            implementation(libs.ktor.client.js)
-        }
-        wasmJsMain.dependencies {
-            implementation(libs.ktor.client.js)
         }
     }
 }
@@ -91,7 +72,7 @@ android {
 
     defaultConfig {
         applicationId = "com.hashsequence.coilresvg.example"
-        minSdk = libs.versions.android.minSdk.get().toInt()
+        minSdk = libs.versions.android.app.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
