@@ -21,6 +21,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,6 +50,66 @@ import org.jetbrains.compose.resources.DrawableResource
 
 @Composable
 fun PerformanceComparisonApp() {
+    var cacheMode by remember { mutableStateOf(CacheMode.Disabled) }
+
+    MaterialTheme {
+        Column(
+            modifier = Modifier
+                .background(Color(0xFFF5F5F5))
+                .safeContentPadding()
+                .fillMaxSize(),
+        ) {
+            CacheModeSelector(
+                selectedMode = cacheMode,
+                onModeSelected = { cacheMode = it },
+            )
+
+            key(cacheMode) {
+                PerformanceComparisonPage(
+                    cacheMode = cacheMode,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CacheModeSelector(
+    selectedMode: CacheMode,
+    onModeSelected: (CacheMode) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        CacheMode.entries.forEach { mode ->
+            if (mode == selectedMode) {
+                Button(
+                    onClick = { onModeSelected(mode) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(mode.title)
+                }
+            } else {
+                OutlinedButton(
+                    onClick = { onModeSelected(mode) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(mode.title)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PerformanceComparisonPage(
+    cacheMode: CacheMode,
+    modifier: Modifier = Modifier,
+) {
     var shouldLoadImages by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
 
@@ -56,7 +117,7 @@ fun PerformanceComparisonApp() {
 
     val baseImageLoader = SingletonImageLoader.get(context)
 
-    val coilSvgLoader = remember(baseImageLoader) {
+    val coilSvgLoader = remember(baseImageLoader, cacheMode) {
         ImageLoader.Builder(context)
             .components {
                 add(DrawableResourceFetcher.Factory())
@@ -72,11 +133,15 @@ fun PerformanceComparisonApp() {
             .build()
     }
 
-    val resvgLoader = remember(baseImageLoader) {
+    val resvgLoader = remember(baseImageLoader, cacheMode) {
         ImageLoader.Builder(context)
             .components {
                 add(DrawableResourceFetcher.Factory())
-                add(PerformanceLoggingResvgDecoder.Factory())
+                add(
+                    PerformanceLoggingResvgDecoder.Factory(
+                        diskCacheEnabled = cacheMode.cacheEnabled,
+                    )
+                )
                 @Suppress("UNCHECKED_CAST")
                 baseImageLoader.components.fetcherFactories.forEach { (factory, type) ->
                     add(
@@ -86,6 +151,13 @@ fun PerformanceComparisonApp() {
                 }
             }
             .build()
+    }
+
+    DisposableEffect(coilSvgLoader, resvgLoader) {
+        onDispose {
+            coilSvgLoader.shutdown()
+            resvgLoader.shutdown()
+        }
     }
 
     val testSvgs = remember {
@@ -98,96 +170,109 @@ fun PerformanceComparisonApp() {
         )
     }
 
-    MaterialTheme {
-        BoxWithConstraints(
+    BoxWithConstraints(
+        modifier = modifier.fillMaxSize()
+    ) {
+        // 表头约 80dp，副标题约 30dp，留给 5 行卡片的高度
+        // 每行卡片额外占用约 8dp（Card padding），label 宽 60dp
+        val availableHeight = maxHeight
+        val headerHeight = 80.dp
+        val imageSize = min((availableHeight - headerHeight) / 5 - 8.dp, 150.dp)
+
+        Column(
             modifier = Modifier
-                .background(Color(0xFFF5F5F5))
-                .safeContentPadding()
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // 表头约 80dp，副标题约 30dp，留给 5 行卡片的高度
-            // 每行卡片额外占用约 8dp（Card padding），label 宽 60dp
-            val availableHeight = maxHeight
-            val headerHeight = 80.dp
-            val imageSize = min((availableHeight - headerHeight) / 5 - 8.dp, 150.dp)
-
-            Column(
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Text(
-                        text = "Test",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.DarkGray,
-                        modifier = Modifier.width(80.dp),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Text(
-                        text = "Coil-SVG",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2196F3),
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Button(
-                        onClick = {
-                            if (shouldLoadImages) {
-                                reloadKey++
-                            } else {
-                                shouldLoadImages = true
-                            }
-                        }
-                    ) {
-                        Text(if (shouldLoadImages) "Test Again" else "Start Test")
-                    }
-
-                    Text(
-                        text = "Resvg",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50),
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center
-                    )
-                }
-
                 Text(
-                    text = "Memory cache disabled, forcing re-render",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.DarkGray.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                    text = "Test",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.DarkGray,
+                    modifier = Modifier.width(80.dp),
                     textAlign = TextAlign.Center
                 )
 
-                if (shouldLoadImages) {
+                Text(
+                    text = "Coil-SVG",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2196F3),
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
 
-                    key(reloadKey) {
-                        testSvgs.forEach { (svg, label) ->
-                            ComparisonCard(
-                                svgResource = svg,
-                                label = label,
-                                coilSvgLoader = coilSvgLoader,
-                                resvgLoader = resvgLoader,
-                                imageSize = imageSize
-                            )
+                Button(
+                    onClick = {
+                        if (shouldLoadImages) {
+                            reloadKey++
+                        } else {
+                            shouldLoadImages = true
                         }
+                    }
+                ) {
+                    Text(if (shouldLoadImages) "Test Again" else "Start Test")
+                }
+
+                Text(
+                    text = "Resvg",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF4CAF50),
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Text(
+                text = cacheMode.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.DarkGray.copy(alpha = 0.7f),
+                modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                textAlign = TextAlign.Center
+            )
+
+            if (shouldLoadImages) {
+                key(reloadKey) {
+                    testSvgs.forEach { (svg, label) ->
+                        ComparisonCard(
+                            svgResource = svg,
+                            label = label,
+                            coilSvgLoader = coilSvgLoader,
+                            resvgLoader = resvgLoader,
+                            imageSize = imageSize,
+                            cacheEnabled = cacheMode.cacheEnabled,
+                            runKey = reloadKey,
+                        )
                     }
                 }
             }
         }
     }
+}
+
+private enum class CacheMode(
+    val title: String,
+    val description: String,
+    val cacheEnabled: Boolean,
+) {
+    Disabled(
+        title = "Cache Off",
+        description = "Memory and rendered bitmap disk caches disabled",
+        cacheEnabled = false,
+    ),
+    Enabled(
+        title = "Cache On",
+        description = "Memory cache disabled; rendered bitmap disk cache enabled",
+        cacheEnabled = true,
+    ),
 }
 
 @Composable
@@ -198,15 +283,20 @@ fun DecoderImageColumn(
     imageLoader: ImageLoader,
     contentDescription: String,
     imageSize: Dp,
+    cacheEnabled: Boolean,
+    runKey: Int,
     modifier: Modifier = Modifier
 ) {
     val context = LocalPlatformContext.current
-    val modelKey = svgResource.hashCode().toString()
+    val modelKey = "${if (cacheEnabled) "cache-on" else "cache-off"}:$runKey:${svgResource.hashCode()}"
 
-    val request = remember(svgResource) {
+    val request = remember(svgResource, cacheEnabled, runKey) {
         ImageRequest.Builder(context)
             .data(svgResource)
             .memoryCachePolicy(CachePolicy.DISABLED)
+            .diskCachePolicy(
+                if (cacheEnabled) CachePolicy.ENABLED else CachePolicy.DISABLED
+            )
             .apply { extras[ModelKeyExtra] = modelKey }
             .build()
     }
@@ -281,7 +371,9 @@ fun ComparisonCard(
     label: String,
     coilSvgLoader: ImageLoader,
     resvgLoader: ImageLoader,
-    imageSize: Dp = 150.dp
+    imageSize: Dp = 150.dp,
+    cacheEnabled: Boolean,
+    runKey: Int,
 ) {
     Row(
         modifier = Modifier
@@ -314,6 +406,8 @@ fun ComparisonCard(
                     imageLoader = coilSvgLoader,
                     contentDescription = "Coil-SVG",
                     imageSize = imageSize,
+                    cacheEnabled = cacheEnabled,
+                    runKey = runKey,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -326,6 +420,8 @@ fun ComparisonCard(
                     imageLoader = resvgLoader,
                     contentDescription = "Resvg",
                     imageSize = imageSize,
+                    cacheEnabled = cacheEnabled,
+                    runKey = runKey,
                     modifier = Modifier.weight(1f)
                 )
             }
