@@ -4,12 +4,12 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-resvg = "0.47"
-usvg = "0.47"
+resvg = "0.48.1"
+usvg = "0.48.1"
 tiny-skia = "0.12"
 uniffi = "0.29"
 thiserror = "2.0"
-fontdb = "0.23"
+fontdb = "0.24"
 
 [profile.dev]
 opt-level = 3
