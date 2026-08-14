@@ -62,7 +62,8 @@ kotlin {
     if (osName.contains("mac")) {
         listOf(
             iosArm64(),
-            iosSimulatorArm64()
+            iosSimulatorArm64(),
+            iosX64()
         ).forEach { iosTarget ->
             iosTarget.binaries.framework {
                 baseName = "CoilResvg"
