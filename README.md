@@ -54,7 +54,7 @@ Add the dependency to your `build.gradle.kts`:
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("com.hashsequence:coil-resvg:1.1.0")
+    implementation("com.hashsequence:coil-resvg:1.1.1")
 }
 ```
 
@@ -64,7 +64,7 @@ For Kotlin Multiplatform projects, add it to `commonMain`:
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("com.hashsequence:coil-resvg:1.1.0")
+            implementation("com.hashsequence:coil-resvg:1.1.1")
         }
     }
 }
