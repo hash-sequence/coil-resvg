@@ -44,7 +44,15 @@ jobs:
 
           cat > .cargo-scripts/aarch64-linux-linker.sh << 'EOF'
           #!/bin/bash
-          zig cc -target aarch64-linux-gnu "$@"
+          # Rust 1.98 adds this flag, which Zig 0.15.2 does not support.
+          # Follow the workaround in rust-cross/cargo-zigbuild#452.
+          args=()
+          for arg in "$@"; do
+            if [[ "$arg" != "-Wl,--fix-cortex-a53-843419" ]]; then
+              args+=("$arg")
+            fi
+          done
+          exec zig cc -target aarch64-linux-gnu "${args[@]}"
           EOF
 
           chmod +x .cargo-scripts/*.sh
