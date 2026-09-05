@@ -77,6 +77,12 @@ pub struct SvgRenderResult {
     pub pixels: Vec<u8>,
 }
 
+#[derive(uniffi::Record)]
+pub struct SvgRenderResultWithCache {
+    pub image: SvgRenderResult,
+    pub png: Option<Vec<u8>>,
+}
+
 #[derive(Debug, uniffi::Error, thiserror::Error)]
 pub enum SvgError {
     #[error("Failed to parse SVG: {msg}")]
@@ -115,6 +121,42 @@ impl SvgRenderer {
     }
 
     pub fn render(&self, width: u32, height: u32) -> Result<SvgRenderResult, SvgError> {
+        let pixmap = self.render_pixmap(width, height)?;
+        Ok(into_render_result(pixmap))
+    }
+
+    /// Renders once and optionally encodes a PNG for the Kotlin disk cache.
+    /// A PNG encoding error leaves the rendered image available with `png: None`.
+    pub fn render_with_cache(
+        &self,
+        width: u32,
+        height: u32,
+        encode_png: bool,
+    ) -> Result<SvgRenderResultWithCache, SvgError> {
+        let pixmap = self.render_pixmap(width, height)?;
+        // Cache encoding is optional: an encoding failure must not discard the rendered pixels.
+        let png = if encode_png {
+            pixmap.encode_png().ok()
+        } else {
+            None
+        };
+        Ok(SvgRenderResultWithCache {
+            image: into_render_result(pixmap),
+            png,
+        })
+    }
+
+    pub fn get_size(&self) -> SvgSize {
+        let size = self.tree.size();
+        SvgSize {
+            width: size.width(),
+            height: size.height(),
+        }
+    }
+}
+
+impl SvgRenderer {
+    fn render_pixmap(&self, width: u32, height: u32) -> Result<Pixmap, SvgError> {
         let size = self.tree.size();
 
         let target_width = if width == 0 {
@@ -141,21 +183,15 @@ impl SvgRenderer {
 
         resvg::render(&self.tree, transform, &mut pixmap.as_mut());
 
-        let pixels = pixmap.data().to_vec();
-
-        Ok(SvgRenderResult {
-            width: target_width,
-            height: target_height,
-            pixels,
-        })
+        Ok(pixmap)
     }
+}
 
-    pub fn get_size(&self) -> SvgSize {
-        let size = self.tree.size();
-        SvgSize {
-            width: size.width(),
-            height: size.height(),
-        }
+fn into_render_result(pixmap: Pixmap) -> SvgRenderResult {
+    SvgRenderResult {
+        width: pixmap.width(),
+        height: pixmap.height(),
+        pixels: pixmap.take(),
     }
 }
 
@@ -163,4 +199,39 @@ impl SvgRenderer {
 pub fn render_svg(svg_data: Vec<u8>, width: u32, height: u32) -> Result<SvgRenderResult, SvgError> {
     let renderer = SvgRenderer::from_data(svg_data)?;
     renderer.render(width, height)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SVG: &[u8] = br##"<svg xmlns="http://www.w3.org/2000/svg" width="3" height="1">
+        <rect width="1" height="1" fill="#ff0000" fill-opacity="0.5"/>
+        <rect x="1" width="1" height="1" fill="#0000ff"/>
+    </svg>"##;
+
+    #[test]
+    fn cached_png_preserves_dimensions_and_transparency() {
+        let renderer = SvgRenderer::from_data(SVG.to_vec()).unwrap();
+        let result = renderer.render_with_cache(3, 1, true).unwrap();
+        let decoded = Pixmap::decode_png(&result.png.unwrap()).unwrap();
+        assert_eq!((decoded.width(), decoded.height()), (3, 1));
+        assert_eq!(decoded.data(), result.image.pixels);
+        assert_eq!(decoded.pixel(0, 0).unwrap().alpha(), 128);
+        assert_eq!(decoded.pixel(1, 0).unwrap().alpha(), 255);
+        assert_eq!(decoded.pixel(2, 0).unwrap().alpha(), 0);
+    }
+
+    #[test]
+    fn disabling_encoding_returns_the_same_pixels_without_png() {
+        let renderer = SvgRenderer::from_data(SVG.to_vec()).unwrap();
+        let uncached = renderer.render_with_cache(30, 10, false).unwrap();
+        let cached = renderer.render_with_cache(30, 10, true).unwrap();
+        let original = renderer.render(30, 10).unwrap();
+        assert!(uncached.png.is_none());
+        assert!(cached.png.is_some());
+        assert_eq!(uncached.image.pixels, cached.image.pixels);
+        assert_eq!(uncached.image.pixels, original.pixels);
+        assert_eq!((uncached.image.width, uncached.image.height), (30, 10));
+    }
 }

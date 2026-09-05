@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 resvg = "0.48.1"
 usvg = "0.48.1"
-tiny-skia = "0.12"
+tiny-skia = { version = "0.12", features = ["png-format"] }
 uniffi = "0.29"
 thiserror = "2.0"
 fontdb = "0.24"

@@ -18,6 +18,7 @@ import coil3.util.component1
 import coil3.util.component2
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okio.BufferedSource
@@ -30,25 +31,26 @@ class ResvgDecoder internal constructor(
     private val source: ImageSource,
     private val options: Options,
     private val diskCache: DiskCache?,
-    private val render: suspend (ByteArray, Options) -> DecodeResult = ::renderSvgImage,
+    private val render: suspend (ByteArray, Options, Boolean) -> RenderedSvgImage = ::renderSvgImageWithCache,
 ) : Decoder {
 
     constructor(source: ImageSource, options: Options) : this(
         source = source,
         options = options,
         diskCache = null,
-        render = ::renderSvgImage,
+        render = ::renderSvgImageWithCache,
     )
 
     override suspend fun decode(): DecodeResult {
         val svgBytes = source.source().use { it.readByteArray() }
-        val diskCache = diskCache ?: return render(svgBytes, options)
+        val diskCache = diskCache ?: return render(svgBytes, options, false).decodeResult
         val cacheKey = createRenderCacheKey(svgBytes, options)
 
         return RenderCacheLocks.withLock(cacheKey) {
             readFromDiskCache(diskCache, cacheKey, options)
-                ?: render(svgBytes, options).also { result ->
-                    writeToDiskCache(diskCache, cacheKey, result, options)
+                ?: render(svgBytes, options, options.diskCachePolicy.writeEnabled).let { result ->
+                    writeToDiskCache(diskCache, cacheKey, result.pngBytes, options)
+                    result.decodeResult
                 }
         }
     }
@@ -67,7 +69,8 @@ class ResvgDecoder internal constructor(
             if (!isSvg(result.source.source(), result.mimeType)) {
                 return null
             }
-            val diskCache = if (diskCacheEnabled && options.diskCachePolicy.readEnabled) {
+            val cachePolicy = options.diskCachePolicy
+            val diskCache = if (diskCacheEnabled && (cachePolicy.readEnabled || cachePolicy.writeEnabled)) {
                 imageLoader.diskCache
             } else {
                 null
@@ -94,7 +97,16 @@ class ResvgDecoder internal constructor(
 
 expect suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): DecodeResult
 
-internal expect fun encodeCachedBitmap(image: Image): ByteArray?
+internal data class RenderedSvgImage(
+    val decodeResult: DecodeResult,
+    val pngBytes: ByteArray? = null,
+)
+
+internal expect suspend fun renderSvgImageWithCache(
+    svgBytes: ByteArray,
+    options: Options,
+    encodePng: Boolean,
+): RenderedSvgImage
 
 internal expect fun decodeCachedBitmap(bytes: ByteArray): Image?
 
@@ -149,65 +161,59 @@ private fun readFromDiskCache(
 ): DecodeResult? {
     if (!options.diskCachePolicy.readEnabled) return null
 
-    val snapshot = try {
+    val snapshot = cacheOrNull {
         diskCache.openSnapshot(cacheKey)
-    } catch (_: Exception) {
-        null
     } ?: return null
 
     return try {
-        val metadata = diskCache.fileSystem.read(snapshot.metadata) { readUtf8() }
-        if (metadata != RENDER_CACHE_VERSION) return null
+        cacheOrNull {
+            val metadata = diskCache.fileSystem.read(snapshot.metadata) { readUtf8() }
+            if (metadata != RENDER_CACHE_VERSION) return null
 
-        val encodedBitmap = diskCache.fileSystem.read(snapshot.data) { readByteArray() }
-        val image = decodeCachedBitmap(encodedBitmap) ?: return null
-        DecodeResult(image = image, isSampled = true)
-    } catch (_: Exception) {
-        null
-    } finally {
-        try {
-            snapshot.close()
-        } catch (_: Exception) {
-            // Ignore cache cleanup failures and fall back to rendering on the next request.
+            val encodedBitmap = diskCache.fileSystem.read(snapshot.data) { readByteArray() }
+            val image = decodeCachedBitmap(encodedBitmap) ?: return null
+            DecodeResult(image = image, isSampled = true)
         }
+    } finally {
+        cacheOrNull { snapshot.close() }
     }
 }
 
 private fun writeToDiskCache(
     diskCache: DiskCache,
     cacheKey: String,
-    result: DecodeResult,
+    pngBytes: ByteArray?,
     options: Options,
 ) {
-    if (!options.diskCachePolicy.writeEnabled) return
+    if (!options.diskCachePolicy.writeEnabled || pngBytes == null) return
 
-    val encodedBitmap = try {
-        encodeCachedBitmap(result.image)
-    } catch (_: Exception) {
-        null
-    } ?: return
-
-    val editor = try {
+    val editor = cacheOrNull {
         diskCache.openEditor(cacheKey)
-    } catch (_: Exception) {
-        null
     } ?: return
 
+    var committed = false
     try {
-        diskCache.fileSystem.write(editor.metadata) {
-            writeUtf8(RENDER_CACHE_VERSION)
+        cacheOrNull {
+            diskCache.fileSystem.write(editor.metadata) {
+                writeUtf8(RENDER_CACHE_VERSION)
+            }
+            diskCache.fileSystem.write(editor.data) {
+                write(pngBytes)
+            }
+            editor.commit()
+            committed = true
         }
-        diskCache.fileSystem.write(editor.data) {
-            write(encodedBitmap)
-        }
-        editor.commit()
-    } catch (_: Exception) {
-        try {
-            editor.abort()
-        } catch (_: Exception) {
-            // Ignore cache cleanup failures. Rendering already succeeded.
-        }
+    } finally {
+        if (!committed) cacheOrNull { editor.abort() }
     }
+}
+
+private inline fun <T> cacheOrNull(block: () -> T): T? = try {
+    block()
+} catch (error: Throwable) {
+    // Optional cache I/O and codec linkage failures must not fail an otherwise valid image.
+    if (error is CancellationException) throw error
+    null
 }
 
 private object RenderCacheLocks {

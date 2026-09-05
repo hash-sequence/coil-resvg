@@ -1,6 +1,5 @@
 package com.hashsequence.coilresvg
 
-import coil3.BitmapImage
 import coil3.Image
 import coil3.PlatformContext
 import coil3.asImage
@@ -10,27 +9,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.ColorAlphaType
-import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image as SkiaImage
 import org.jetbrains.skia.ImageInfo
 
 internal actual val PlatformContext.density: Float
     get() = 1f
-
-internal actual fun encodeCachedBitmap(image: Image): ByteArray? {
-    val bitmap = (image as? BitmapImage)?.bitmap ?: return null
-    val skiaImage = SkiaImage.makeFromBitmap(bitmap)
-    return try {
-        val data = skiaImage.encodeToData(EncodedImageFormat.PNG, 100) ?: return null
-        try {
-            data.bytes
-        } finally {
-            data.close()
-        }
-    } finally {
-        skiaImage.close()
-    }
-}
 
 internal actual fun decodeCachedBitmap(bytes: ByteArray): Image? {
     val skiaImage = SkiaImage.makeFromEncoded(bytes)
@@ -42,13 +25,23 @@ internal actual fun decodeCachedBitmap(bytes: ByteArray): Image? {
 }
 
 actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): DecodeResult =
+    renderSvgImageWithCache(svgBytes, options, false).decodeResult
+
+internal actual suspend fun renderSvgImageWithCache(
+    svgBytes: ByteArray,
+    options: Options,
+    encodePng: Boolean,
+): RenderedSvgImage =
     withContext(Dispatchers.Default) {
         val renderer = SvgRenderer.fromData(svgBytes)
 
         val svgSize = renderer.getSize()
         val renderSize = computeSvgRenderSize(svgSize.width, svgSize.height, options)
 
-        val result = renderer.render(renderSize.width.toUInt(), renderSize.height.toUInt())
+        val rendered = renderer.renderWithCache(
+            renderSize.width.toUInt(), renderSize.height.toUInt(), encodePng,
+        )
+        val result = rendered.image
 
         val imageInfo = ImageInfo(
             width = renderSize.width,
@@ -64,8 +57,8 @@ actual suspend fun renderSvgImage(svgBytes: ByteArray, options: Options): Decode
         bitmap.installPixels(imageInfo, result.pixels, renderSize.width * 4)
         bitmap.setImmutable()
 
-        DecodeResult(
-            image = bitmap.asImage(),
-            isSampled = true
+        RenderedSvgImage(
+            decodeResult = DecodeResult(image = bitmap.asImage(), isSampled = true),
+            pngBytes = rendered.png,
         )
     }

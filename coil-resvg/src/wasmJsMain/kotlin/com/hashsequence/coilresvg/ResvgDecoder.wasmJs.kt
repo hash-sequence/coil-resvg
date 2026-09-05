@@ -35,7 +35,11 @@ private external fun consoleError(message: String)
 internal actual val PlatformContext.density: Float
     get() = 1f
 
-internal actual fun encodeCachedBitmap(image: coil3.Image): ByteArray? = null
+internal actual suspend fun renderSvgImageWithCache(
+    svgBytes: ByteArray,
+    options: Options,
+    encodePng: Boolean,
+): RenderedSvgImage = RenderedSvgImage(renderSvgImage(svgBytes, options))
 
 internal actual fun decodeCachedBitmap(bytes: ByteArray): coil3.Image? = null
 

@@ -97,24 +97,14 @@ That's it — SVG files will be automatically detected and rendered by resvg.
 
 ### Rendered bitmap disk cache
 
-`ResvgDecoder.Factory()` caches rendered bitmaps in Coil's disk cache by default. If the SVG
-content, explicit Coil `diskCacheKey` (when set), requested size, scale, precision, maximum bitmap
-size, and display density are unchanged, a later request decodes the cached PNG and skips resvg
-rendering. The entries share Coil's existing LRU size limit and respect each request's
+`ResvgDecoder.Factory()` caches rendered bitmaps as PNGs in Coil's disk cache by default on Android,
+iOS, and JVM. When the SVG content and rendering options match a cached entry, later requests decode
+the PNG instead of parsing and rendering the SVG again, speeding up repeated loads.
+
+These entries share Coil's cache size limit and automatic eviction, and respect each request's
 `diskCachePolicy`.
 
-To disable caching rendered bitmaps while keeping the decoder enabled:
-
-```kotlin
-ImageLoader.Builder(context)
-    .components {
-        add(ResvgDecoder.Factory(diskCacheEnabled = false))
-    }
-    .build()
-```
-
-Coil does not provide a disk cache by default on browser targets, so JS and Wasm continue to render
-normally unless Coil adds filesystem-backed disk caching for those platforms.
+To disable it, use `ResvgDecoder.Factory(diskCacheEnabled = false)`.
 
 ## Why resvg?
 
